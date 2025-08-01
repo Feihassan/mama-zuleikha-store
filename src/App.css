@@ -1,0 +1,6 @@
+body {
+  @apply font-sans bg-white text-dark;
+}
+.card {
+  @apply border rounded-xl shadow-sm p-4 transition hover:shadow-md;
+}
