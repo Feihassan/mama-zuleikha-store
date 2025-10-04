@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
+import ErrorBoundary from "./components/ErrorBoundary";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
@@ -14,34 +15,35 @@ import AdminOrders from "./pages/AdminOrders";
 
 function App() {
   return (
-    <Router>
-      <Navbar />
+    <ErrorBoundary>
+      <Router>
+        <Navbar />
 
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/products" element={<Products />} />
-        <Route path="/products/:id" element={<ProductDetails />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/thank-you" element={<ThankYou />} />
-        <Route path="/admin" element={<AdminOrders />} />
-      </Routes>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/products/:id" element={<ProductDetails />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/thank-you" element={<ThankYou />} />
+          <Route path="/admin" element={<AdminOrders />} />
+        </Routes>
 
-      <Footer />
+        <Footer />
 
-      {/* ✅ Toast setup */}
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: "#f9f5f7",
-            color: "#d63384",
-            fontWeight: "bold",
-          },
-        }}
-      />
-    </Router>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: "#f9f5f7",
+              color: "#d63384",
+              fontWeight: "bold",
+            },
+          }}
+        />
+      </Router>
+    </ErrorBoundary>
   );
 }
 
