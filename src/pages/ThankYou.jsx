@@ -4,41 +4,45 @@ import { useEffect, useState } from 'react';
 function ThankYou() {
   const location = useLocation();
   const { orderId, paymentPending } = location.state || {};
-  const [paymentStatus, setPaymentStatus] = useState('checking');
+  const [paymentStatus, setPaymentStatus] = useState('pending');
+  const [isChecking, setIsChecking] = useState(false);
 
-  useEffect(() => {
-    if (paymentPending && orderId) {
-      const checkPayment = async () => {
-        try {
-          const orders = JSON.parse(localStorage.getItem('orders')) || [];
-          const order = orders.find(o => o.id === orderId);
-          
-          if (order?.checkoutRequestId) {
-            const response = await fetch(`http://localhost:3000/api/mpesa/query/${order.checkoutRequestId}`);
-            const data = await response.json();
-            
-            if (data.ResultCode === '0') {
-              const updatedOrders = orders.map(o => 
-                o.id === orderId ? { ...o, status: 'paid', transactionId: data.MpesaReceiptNumber } : o
-              );
-              localStorage.setItem('orders', JSON.stringify(updatedOrders));
-              setPaymentStatus('completed');
-            } else if (data.ResultCode === '1032') {
-              setPaymentStatus('cancelled');
-            } else {
-              setPaymentStatus('failed');
-            }
-          }
-        } catch (error) {
-          console.error('Payment check error:', error);
+  const checkPaymentStatus = async () => {
+    if (!paymentPending || !orderId) return;
+    
+    setIsChecking(true);
+    try {
+      const orders = JSON.parse(localStorage.getItem('orders')) || [];
+      const order = orders.find(o => o.id === orderId);
+      
+      if (order?.checkoutRequestId) {
+        const response = await fetch(`http://localhost:3000/api/mpesa/query/${order.checkoutRequestId}`);
+        
+        if (!response.ok) {
+          throw new Error('Unable to check payment status');
         }
-      };
-
-      const interval = setInterval(checkPayment, 5000);
-      checkPayment();
-      return () => clearInterval(interval);
+        
+        const data = await response.json();
+        
+        if (data.ResultCode === '0') {
+          const updatedOrders = orders.map(o => 
+            o.id === orderId ? { ...o, status: 'paid', transactionId: data.MpesaReceiptNumber } : o
+          );
+          localStorage.setItem('orders', JSON.stringify(updatedOrders));
+          setPaymentStatus('completed');
+        } else if (data.ResultCode === '1032') {
+          setPaymentStatus('cancelled');
+        } else {
+          setPaymentStatus('failed');
+        }
+      }
+    } catch (error) {
+      console.error('Payment check error:', error);
+      setPaymentStatus('error');
+    } finally {
+      setIsChecking(false);
     }
-  }, [orderId, paymentPending]);
+  };
 
   const renderPaymentStatus = () => {
     if (!paymentPending) return null;
@@ -65,11 +69,25 @@ function ThankYou() {
             <p>You cancelled the payment. Your order has not been confirmed.</p>
           </div>
         );
+      case 'error':
+        return (
+          <div className="bg-orange-50 border border-orange-200 rounded p-4 text-sm text-orange-800">
+            <p className="font-semibold mb-1">⚠️ Unable to Check Status</p>
+            <p>We couldn't verify your payment status. Please try again or contact support if you completed the payment.</p>
+          </div>
+        );
       default:
         return (
           <div className="bg-yellow-50 border border-yellow-200 rounded p-4 text-sm text-yellow-800">
-            <p className="font-semibold mb-1">⏳ Checking Payment Status...</p>
-            <p>Please complete the M-Pesa payment on your phone.</p>
+            <p className="font-semibold mb-1">⏳ Payment Initiated</p>
+            <p className="mb-3">Please complete the M-Pesa payment on your phone, then click the button below to verify.</p>
+            <button
+              onClick={checkPaymentStatus}
+              disabled={isChecking}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+            >
+              {isChecking ? 'Checking...' : 'Check Payment Status'}
+            </button>
           </div>
         );
     }
