@@ -118,4 +118,11 @@ const products = [
   }
 ];
 
-export default products;
+// Get admin products from localStorage and merge with default products
+const getProducts = () => {
+  const adminProducts = JSON.parse(localStorage.getItem('adminProducts')) || [];
+  return [...products, ...adminProducts];
+};
+
+export default getProducts();
+export { getProducts };

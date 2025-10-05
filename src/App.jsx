@@ -12,6 +12,9 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import ThankYou from "./pages/ThankYou"; 
 import AdminOrders from "./pages/AdminOrders";
+import AdminProducts from "./pages/AdminProducts";
+import AdminLogin from "./pages/AdminLogin";
+import OrderTracking from "./pages/OrderTracking";
 
 function App() {
   return (
@@ -26,7 +29,11 @@ function App() {
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/thank-you" element={<ThankYou />} />
+          <Route path="/track" element={<OrderTracking />} />
+          <Route path="/track/:orderId" element={<OrderTracking />} />
           <Route path="/admin" element={<AdminOrders />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/products" element={<AdminProducts />} />
         </Routes>
 
         <Footer />

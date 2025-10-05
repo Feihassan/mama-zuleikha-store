@@ -59,6 +59,9 @@ function Navbar() {
           <Link to="/products" className="text-primary dark:text-white hover:underline">
             Products
           </Link>
+          <Link to="/track" className="text-primary dark:text-white hover:underline">
+            Track Order
+          </Link>
           <Link to="/cart" className="relative text-primary dark:text-white hover:underline">
             Cart
             {cartCount > 0 && (
@@ -86,6 +89,13 @@ function Navbar() {
             onClick={() => setIsOpen(false)}
           >
             Products
+          </Link>
+          <Link
+            to="/track"
+            className="block py-2 text-primary dark:text-white"
+            onClick={() => setIsOpen(false)}
+          >
+            Track Order
           </Link>
           <Link
             to="/cart"
