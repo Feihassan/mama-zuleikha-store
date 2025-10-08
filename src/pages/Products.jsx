@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import products from "../data/products";
 import ProductCard from "../components/ProductCard";
 
@@ -7,6 +8,14 @@ const allCategories = ["All", ...new Set(products.map((p) => p.category))];
 function Products() {
   const [selected, setSelected] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const urlSearch = searchParams.get('search');
+    if (urlSearch) {
+      setSearchTerm(urlSearch);
+    }
+  }, [searchParams]);
 
   // Filter by category
   const categoryFiltered =

@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
+import SearchBar from "./SearchBar";
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -51,6 +52,11 @@ function Navbar() {
           </svg>
         </button>
 
+        {/* Search Bar - Desktop */}
+        <div className="hidden sm:block flex-1">
+          <SearchBar />
+        </div>
+
         {/* Desktop Menu */}
         <div className="hidden sm:flex gap-6 items-center">
           <Link to="/" className="text-primary dark:text-white hover:underline">
@@ -58,6 +64,12 @@ function Navbar() {
           </Link>
           <Link to="/products" className="text-primary dark:text-white hover:underline">
             Products
+          </Link>
+          <Link to="/about" className="text-primary dark:text-white hover:underline">
+            About
+          </Link>
+          <Link to="/contact" className="text-primary dark:text-white hover:underline">
+            Contact
           </Link>
           <Link to="/track" className="text-primary dark:text-white hover:underline">
             Track Order
@@ -89,6 +101,20 @@ function Navbar() {
             onClick={() => setIsOpen(false)}
           >
             Products
+          </Link>
+          <Link
+            to="/about"
+            className="block py-2 text-primary dark:text-white"
+            onClick={() => setIsOpen(false)}
+          >
+            About
+          </Link>
+          <Link
+            to="/contact"
+            className="block py-2 text-primary dark:text-white"
+            onClick={() => setIsOpen(false)}
+          >
+            Contact
           </Link>
           <Link
             to="/track"

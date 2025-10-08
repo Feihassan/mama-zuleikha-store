@@ -14,6 +14,9 @@ import ThankYou from "./pages/ThankYou";
 import AdminOrders from "./pages/AdminOrders";
 import AdminProducts from "./pages/AdminProducts";
 import AdminLogin from "./pages/AdminLogin";
+import Contact from "./pages/Contact";
+import About from "./pages/About";
+import TrackOrder from "./pages/TrackOrder";
 import OrderTracking from "./pages/OrderTracking";
 
 function App() {
@@ -32,6 +35,9 @@ function App() {
           <Route path="/track" element={<OrderTracking />} />
           <Route path="/track/:orderId" element={<OrderTracking />} />
           <Route path="/admin" element={<AdminOrders />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/track" element={<TrackOrder />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/products" element={<AdminProducts />} />
         </Routes>
