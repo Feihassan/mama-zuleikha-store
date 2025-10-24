@@ -108,46 +108,88 @@ function Checkout() {
         if (mpesaData.ResponseCode === '0') {
           toast.success("Payment prompt sent to your phone. Please complete the payment.");
           
-          // Create order with pending payment status
-          const order = {
-            id: Date.now().toString(),
-            items: cart,
-            customer: form,
-            total,
-            status: 'pending_payment',
-            paymentMethod: 'mpesa',
-            checkoutRequestId: mpesaData.CheckoutRequestID,
-            date: new Date().toISOString(),
-          };
+          // Create order in database
+          const orderResponse = await fetch('http://localhost:3000/api/orders', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              customerName: form.name,
+              customerEmail: form.email,
+              customerPhone: form.phone,
+              totalAmount: total,
+              items: cart.map(item => ({
+                productId: item.id,
+                quantity: item.quantity,
+                price: item.price
+              }))
+            })
+          });
 
-          const orders = JSON.parse(localStorage.getItem("orders")) || [];
-          orders.push(order);
-          localStorage.setItem("orders", JSON.stringify(orders));
+          if (!orderResponse.ok) {
+            throw new Error('Failed to create order');
+          }
+
+          const orderData = await orderResponse.json();
+          
+          // Update order with M-Pesa checkout ID
+          await fetch(`http://localhost:3000/api/orders/${orderData.orderId}/status`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              status: 'pending_payment',
+              mpesaCheckoutId: mpesaData.CheckoutRequestID
+            })
+          });
 
           localStorage.removeItem("cart");
-          navigate("/thank-you", { state: { orderId: order.id, paymentPending: true } });
+          navigate("/thank-you", { state: { orderId: orderData.orderId, paymentPending: true } });
         } else {
           throw new Error(mpesaData.errorMessage || 'Failed to initiate payment');
         }
       } else {
-        // Cash on delivery - no payment processing needed
-        const order = {
-          id: Date.now().toString(),
-          items: cart,
-          customer: form,
-          total,
-          status: 'confirmed',
-          paymentMethod: 'cod',
-          date: new Date().toISOString(),
-        };
+        // Cash on delivery - create order in database
+        const orderResponse = await fetch('http://localhost:3000/api/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            customerName: form.name,
+            customerEmail: form.email,
+            customerPhone: form.phone,
+            totalAmount: total,
+            items: cart.map(item => ({
+              productId: item.id,
+              quantity: item.quantity,
+              price: item.price
+            }))
+          })
+        });
 
-        const orders = JSON.parse(localStorage.getItem("orders")) || [];
-        orders.push(order);
-        localStorage.setItem("orders", JSON.stringify(orders));
+        if (!orderResponse.ok) {
+          throw new Error('Failed to create order');
+        }
+
+        const orderData = await orderResponse.json();
+        
+        // Update status to confirmed for COD
+        await fetch(`http://localhost:3000/api/orders/${orderData.orderId}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            status: 'confirmed'
+          })
+        });
 
         localStorage.removeItem("cart");
         toast.success("Order placed successfully!");
-        navigate("/thank-you", { state: { orderId: order.id } });
+        navigate("/thank-you", { state: { orderId: orderData.orderId } });
       }
     } catch (error) {
       toast.error(error.message || "Failed to place order. Please try again.");

@@ -4,18 +4,31 @@ function TrackOrder() {
   const [orderId, setOrderId] = useState('');
   const [order, setOrder] = useState(null);
   const [notFound, setNotFound] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleTrack = (e) => {
+  const handleTrack = async (e) => {
     e.preventDefault();
-    const orders = JSON.parse(localStorage.getItem('orders')) || [];
-    const foundOrder = orders.find(o => o.id === orderId.trim());
+    setLoading(true);
     
-    if (foundOrder) {
-      setOrder(foundOrder);
-      setNotFound(false);
-    } else {
+    try {
+      const response = await fetch(`http://localhost:3000/api/orders/${orderId.trim()}`);
+      
+      if (response.status === 404) {
+        setOrder(null);
+        setNotFound(true);
+      } else if (!response.ok) {
+        throw new Error('Failed to fetch order');
+      } else {
+        const foundOrder = await response.json();
+        setOrder(foundOrder);
+        setNotFound(false);
+      }
+    } catch (error) {
+      console.error('Error tracking order:', error);
       setOrder(null);
       setNotFound(true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -60,9 +73,10 @@ function TrackOrder() {
           />
           <button
             type="submit"
-            className="bg-primary text-white px-6 py-3 rounded-r-full hover:bg-pink-700 transition"
+            disabled={loading}
+            className="bg-primary text-white px-6 py-3 rounded-r-full hover:bg-pink-700 transition disabled:opacity-50"
           >
-            Track
+            {loading ? 'Tracking...' : 'Track'}
           </button>
         </div>
       </form>
@@ -83,7 +97,7 @@ function TrackOrder() {
             <div>
               <h2 className="text-xl font-semibold">Order #{order.id}</h2>
               <p className="text-gray-600">
-                Placed on {new Date(order.date).toLocaleDateString()}
+                Placed on {new Date(order.created_at).toLocaleDateString()}
               </p>
             </div>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
@@ -94,42 +108,32 @@ function TrackOrder() {
           {/* Customer Info */}
           <div className="mb-6">
             <h3 className="font-semibold mb-2">Delivery Information</h3>
-            <p className="text-gray-700">{order.customer.name}</p>
-            <p className="text-gray-700">{order.customer.email}</p>
-            <p className="text-gray-700">{order.customer.phone}</p>
-            <p className="text-gray-700">{order.customer.address}</p>
-            <p className="text-gray-700">{order.customer.city}</p>
+            <p className="text-gray-700">{order.customer_name}</p>
+            <p className="text-gray-700">{order.customer_email}</p>
+            <p className="text-gray-700">{order.customer_phone}</p>
           </div>
 
           {/* Order Items */}
           <div className="mb-6">
-            <h3 className="font-semibold mb-3">Order Items</h3>
-            <div className="space-y-2">
-              {order.items.map((item, index) => (
-                <div key={index} className="flex justify-between items-center py-2 border-b">
-                  <div>
-                    <p className="font-medium">{item.title}</p>
-                    <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
-                  </div>
-                  <p className="font-medium">Ksh {item.price * item.quantity}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between items-center pt-4 font-semibold text-lg">
-              <span>Total</span>
-              <span>Ksh {order.total}</span>
+            <h3 className="font-semibold mb-3">Order Summary</h3>
+            <div className="bg-gray-50 p-4 rounded">
+              <p className="text-gray-600 mb-2">Order contains multiple items</p>
+              <div className="flex justify-between items-center pt-2 font-semibold text-lg border-t">
+                <span>Total Amount</span>
+                <span>Ksh {order.total_amount}</span>
+              </div>
             </div>
           </div>
 
           {/* Payment Method */}
           <div className="mb-6">
-            <h3 className="font-semibold mb-2">Payment Method</h3>
-            <p className="text-gray-700 capitalize">
-              {order.paymentMethod === 'mpesa' ? 'M-Pesa' : order.paymentMethod}
+            <h3 className="font-semibold mb-2">Payment Information</h3>
+            <p className="text-gray-700">
+              Payment Method: M-Pesa
             </p>
-            {order.transactionId && (
+            {order.mpesa_checkout_id && (
               <p className="text-sm text-gray-600">
-                Transaction ID: {order.transactionId}
+                M-Pesa Reference: {order.mpesa_checkout_id}
               </p>
             )}
           </div>

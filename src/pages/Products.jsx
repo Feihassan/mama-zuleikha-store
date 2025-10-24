@@ -1,14 +1,46 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import products from "../data/products";
 import ProductCard from "../components/ProductCard";
 
-const allCategories = ["All", ...new Set(products.map((p) => p.category))];
-
 function Products() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [searchParams] = useSearchParams();
+
+  // Fetch products from backend
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/products');
+        if (response.ok) {
+          const data = await response.json();
+          // Transform backend data to match frontend structure
+          const transformedProducts = data.map(product => ({
+            id: product.id,
+            title: product.name,
+            category: product.category,
+            price: parseFloat(product.price),
+            description: product.description,
+            image: product.image_url,
+            inStock: product.stock_quantity > 0
+          }));
+          setProducts(transformedProducts);
+        } else {
+          console.error('Failed to fetch products');
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  const allCategories = ["All", ...new Set(products.map((p) => p.category))];
 
   useEffect(() => {
     const urlSearch = searchParams.get('search');
@@ -27,6 +59,14 @@ function Products() {
   const filtered = categoryFiltered.filter((product) =>
     product.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="p-6 sm:p-8 max-w-7xl mx-auto text-center">
+        <div className="text-primary">Loading products...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 sm:p-8 max-w-7xl mx-auto">

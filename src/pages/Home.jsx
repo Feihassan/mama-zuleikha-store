@@ -1,15 +1,40 @@
 import { Link } from "react-router-dom";
-import products from "../data/products";
+import { useState, useEffect } from "react";
 import ProductCard from "../components/ProductCard";
 import { motion } from "framer-motion";
 
 function Home() {
-  const newArrivals = products.slice(0, 3); // Preview first 3 products
+  const [newArrivals, setNewArrivals] = useState([]);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/products');
+        if (response.ok) {
+          const data = await response.json();
+          const transformedProducts = data.slice(0, 3).map(product => ({
+            id: product.id,
+            title: product.name,
+            category: product.category,
+            price: parseFloat(product.price),
+            description: product.description,
+            image: product.image_url,
+            inStock: product.stock_quantity > 0
+          }));
+          setNewArrivals(transformedProducts);
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   const testimonials = [
     {
       name: "Aisha M.",
-      message: "I love how soft my skin feels now! Mama Zulekha is a must-have.",
+      message: "I love how soft my skin feels now! GlowHub is a must-have.",
     },
     {
       name: "Fatma K.",
@@ -38,7 +63,7 @@ function Home() {
 
         <div className="relative max-w-2xl mx-auto z-10">
           <h1 className="text-3xl sm:text-5xl font-bold mb-4 leading-tight">
-            Glow Naturally <br /> with Mama Zulekha
+            Glow Naturally <br /> with GlowHub
           </h1>
           <p className="text-lg sm:text-xl mb-6 text-gray-100">
             Discover handcrafted skincare, makeup, and wellness products made for you.
@@ -76,10 +101,10 @@ function Home() {
       <section className="bg-pink-50 dark:bg-gray-800 py-16 px-6">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">
-            Why Mama Zulekha?
+            Why GlowHub?
           </h2>
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
-            At Mama Zulekha, we believe every woman deserves to feel confident,
+            At GlowHub, we believe every woman deserves to feel confident,
             radiant, and real. We bring you clean, quality-tested skincare and
             cosmetics with love, care, and a touch of beauty magic. Your glow is
             our mission.
