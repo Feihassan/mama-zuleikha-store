@@ -27,13 +27,16 @@ function Products() {
             price: parseFloat(product.price),
             originalPrice: parseFloat(product.price) * 1.2,
             description: product.description,
-            image: product.image_url,
+            image: product.image_url || '/api/placeholder/300/300',
             inStock: product.stock_quantity > 0,
             rating: 4.5,
-            reviews: Math.floor(Math.random() * 200) + 10
+            reviews: Math.floor(Math.random() * 200) + 10,
+            stockQuantity: product.stock_quantity
           }));
           setProducts(transformedProducts);
           setFilteredProducts(transformedProducts);
+        } else {
+          console.error('Failed to fetch products:', response.status);
         }
       } catch (error) {
         console.error('Error fetching products:', error);
@@ -69,7 +72,17 @@ function Products() {
     }
 
     if (filters.priceRange) {
-      filtered = filtered.filter(p => p.price <= filters.priceRange[1]);
+      filtered = filtered.filter(p => 
+        p.price >= filters.priceRange[0] && p.price <= filters.priceRange[1]
+      );
+    }
+
+    if (filters.inStock) {
+      filtered = filtered.filter(p => p.inStock);
+    }
+
+    if (filters.rating) {
+      filtered = filtered.filter(p => p.rating >= filters.rating);
     }
 
     // Apply sorting

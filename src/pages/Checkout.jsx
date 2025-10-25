@@ -87,7 +87,7 @@ function Checkout() {
         }
 
         // Initiate M-Pesa STK push
-        const mpesaResponse = await fetch('http://localhost:3000/api/mpesa/stkpush', {
+        const mpesaResponse = await fetch('/api/mpesa/stkpush', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -109,7 +109,7 @@ function Checkout() {
           toast.success("Payment prompt sent to your phone. Please complete the payment.");
           
           // Create order in database
-          const orderResponse = await fetch('http://localhost:3000/api/orders', {
+          const orderResponse = await fetch('/api/orders', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -134,13 +134,15 @@ function Checkout() {
           const orderData = await orderResponse.json();
           
           // Update order with M-Pesa checkout ID
-          await fetch(`http://localhost:3000/api/orders/${orderData.orderId}/status`, {
+          const token = localStorage.getItem('token');
+          await fetch(`/api/orders/${orderData.orderId}/status`, {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
-              status: 'pending_payment',
+              status: 'pending',
               mpesaCheckoutId: mpesaData.CheckoutRequestID
             })
           });
@@ -152,7 +154,7 @@ function Checkout() {
         }
       } else {
         // Cash on delivery - create order in database
-        const orderResponse = await fetch('http://localhost:3000/api/orders', {
+        const orderResponse = await fetch('/api/orders', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -176,16 +178,20 @@ function Checkout() {
 
         const orderData = await orderResponse.json();
         
-        // Update status to confirmed for COD
-        await fetch(`http://localhost:3000/api/orders/${orderData.orderId}/status`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            status: 'confirmed'
-          })
-        });
+        // Update status to processing for COD
+        const token = localStorage.getItem('token');
+        if (token) {
+          await fetch(`/api/orders/${orderData.orderId}/status`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              status: 'processing'
+            })
+          });
+        }
 
         localStorage.removeItem("cart");
         toast.success("Order placed successfully!");

@@ -1,18 +1,29 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion"; // eslint-disable-line no-unused-vars
 import SearchBar from "./SearchBar";
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const total = cart.reduce((sum, item) => sum + item.quantity, 0);
-    setCartCount(total);
+    const updateCartCount = () => {
+      const cart = JSON.parse(localStorage.getItem("cart")) || [];
+      const total = cart.reduce((sum, item) => sum + item.quantity, 0);
+      setCartCount(total);
+    };
+    
+    updateCartCount();
+    window.addEventListener('cartUpdated', updateCartCount);
+    
+    return () => {
+      window.removeEventListener('cartUpdated', updateCartCount);
+    };
   }, [location]);
 
   useEffect(() => {
@@ -37,11 +48,62 @@ function Navbar() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+
+      if (token && userData) {
+        try {
+          // Verify token with backend
+          const response = await fetch('/api/auth/verify', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            setUser(JSON.parse(userData));
+          } else {
+            // Token invalid, clear storage
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setUser(null);
+          }
+        } catch (error) {
+          console.error('Auth verification failed:', error);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+    };
+
+    checkAuth();
   }, []);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+    }
+  };
+
+  const navItems = [
+    { to: "/", label: "Home" },
+    { to: "/products", label: "Products" },
+    { to: "/about", label: "About" },
+    { to: "/contact", label: "Contact" },
+  ];
+
+  const authItems = user ? [
+    { to: "/track", label: "Track Order" },
+  ] : [
+    { to: "/login", label: "Sign In" },
+    { to: "/register", label: "Register" },
+  ];
 
   return (
     <motion.nav
@@ -76,19 +138,21 @@ function Navbar() {
 
           {/* Search Bar - Desktop */}
           <div className="hidden lg:block flex-1 max-w-2xl mx-8">
-            <div className="relative">
+            <form onSubmit={handleSearch} className="relative">
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search for products..."
                 className="w-full px-4 py-2 pl-10 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
               />
               <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <button className="absolute right-2 top-1.5 bg-pink-500 text-white px-3 py-1 rounded text-sm hover:bg-pink-600">
+              <button type="submit" className="absolute right-2 top-1.5 bg-pink-500 text-white px-3 py-1 rounded text-sm hover:bg-pink-600">
                 Search
               </button>
-            </div>
+            </form>
           </div>
 
           {/* Desktop Menu */}
@@ -132,12 +196,9 @@ function Navbar() {
                 <div className="absolute top-full right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                   {user ? (
                     <>
-                      <Link to="/account" className="block px-4 py-2 text-gray-700 hover:bg-pink-50 hover:text-pink-600 rounded-t-lg">
-                        My Account
-                      </Link>
-                      <Link to="/orders" className="block px-4 py-2 text-gray-700 hover:bg-pink-50 hover:text-pink-600">
-                        My Orders
-                      </Link>
+                      <div className="px-4 py-2 text-sm text-gray-500 border-b">
+                        Welcome, {user.name}
+                      </div>
                       <Link to="/track" className="block px-4 py-2 text-gray-700 hover:bg-pink-50 hover:text-pink-600">
                         Track Order
                       </Link>

@@ -1,15 +1,54 @@
 import { useParams } from "react-router-dom";
-import products from "../data/products";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import ProductReviews from "../components/ProductReviews";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 function ProductDetails() {
   const { id } = useParams();
-  const product = products.find((p) => p.id.toString() === id);
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
 
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const response = await fetch(`/api/products/${id}`);
+        if (response.ok) {
+          const data = await response.json();
+          const transformedProduct = {
+            id: data.id,
+            title: data.name,
+            category: data.category,
+            price: parseFloat(data.price),
+            description: data.description,
+            image: data.image_url || '/api/placeholder/400/400',
+            inStock: data.stock_quantity > 0,
+            stockQuantity: data.stock_quantity
+          };
+          setProduct(transformedProduct);
+        } else {
+          toast.error('Product not found');
+        }
+      } catch (error) {
+        console.error('Error fetching product:', error);
+        toast.error('Failed to load product');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (id) {
+      fetchProduct();
+    }
+  }, [id]);
+
   const handleAddToCart = () => {
+    if (!product.inStock) {
+      toast.error('Product is out of stock');
+      return;
+    }
+    
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
     const existing = cart.find((item) => item.id === product.id);
 
@@ -20,10 +59,28 @@ function ProductDetails() {
     }
 
     localStorage.setItem("cart", JSON.stringify(cart));
-    toast.success("Added to cart!"); // ✅ Replaced alert with toast
+    window.dispatchEvent(new Event('cartUpdated'));
+    toast.success("Added to cart!");
   };
 
-  if (!product) return <p className="p-8">Product not found.</p>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Product Not Found</h2>
+          <p className="text-gray-600">The product you're looking for doesn't exist.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto p-6 sm:p-12">
@@ -42,8 +99,14 @@ function ProductDetails() {
           </h1>
           <p className="text-sm text-gray-600 mb-2">{product.category}</p>
           <p className="text-xl font-semibold text-primary mb-4">
-            Ksh {product.price}
+            Ksh {product.price.toLocaleString()}
           </p>
+          
+          {product.inStock ? (
+            <p className="text-green-600 font-medium mb-4">✓ In Stock ({product.stockQuantity} available)</p>
+          ) : (
+            <p className="text-red-600 font-medium mb-4">✗ Out of Stock</p>
+          )}
 
           <p className="text-gray-700 mb-6">
             {product.description || "This luxurious product is designed to enhance your natural beauty with nourishing ingredients and stunning results."}
@@ -83,9 +146,10 @@ function ProductDetails() {
           {/* Add to Cart */}
           <button
             onClick={handleAddToCart}
-            className="bg-primary text-white px-6 py-3 rounded-full hover:bg-pink-700 transition"
+            disabled={!product.inStock}
+            className="bg-primary text-white px-6 py-3 rounded-full hover:bg-pink-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            Add to Cart
+            {product.inStock ? 'Add to Cart' : 'Out of Stock'}
           </button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 
@@ -25,26 +25,38 @@ function AdminProducts() {
   });
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/admin/login');
+      return;
+    }
     fetchProducts();
-  }, []);
+  }, [navigate, fetchProducts]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/products');
+      const response = await fetch('/api/products', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
       if (response.ok) {
         const data = await response.json();
         setProducts(data);
+      } else if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/admin/login');
       } else {
         toast.error('Failed to fetch products');
-
       }
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('Failed to fetch products');
     }
-  };
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,11 +73,14 @@ function AdminProducts() {
     try {
       let response;
 
+      const token = localStorage.getItem('token');
+
       if (editingProduct) {
         response = await fetch(`/api/products/${editingProduct.id}`, {
           method: 'PUT',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify(productData)
         });
@@ -74,7 +89,8 @@ function AdminProducts() {
         response = await fetch('/api/products', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify(productData)
         });
@@ -101,8 +117,12 @@ function AdminProducts() {
     }
 
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/products/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       if (response.ok) {

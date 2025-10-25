@@ -107,6 +107,20 @@ const initDatabase = async () => {
       );
     `);
 
+    // Create indexes for better performance
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_products_category ON products(category)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_products_price ON products(price)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_products_created_at ON products(created_at DESC)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON orders(customer_email)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_user_activity_user_id ON user_activity(user_id)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_user_activity_created_at ON user_activity(created_at DESC)');
+
     // Insert sample products if none exist
     const productCount = await pool.query('SELECT COUNT(*) FROM products');
     if (parseInt(productCount.rows[0].count) === 0) {

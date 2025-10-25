@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 
@@ -16,9 +16,9 @@ function AdminOrders() {
     }
 
     fetchOrders();
-  }, [navigate]);
+  }, [navigate, fetchOrders]);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('/api/orders', {
@@ -44,7 +44,7 @@ function AdminOrders() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {

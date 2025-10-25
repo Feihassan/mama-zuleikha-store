@@ -4,36 +4,65 @@ import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Create new order
-router.post('/', async (req, res) => {
+// Create new order (authenticated users only)
+router.post('/', authenticateToken, async (req, res) => {
   try {
     console.log('Creating order with data:', req.body);
     const { customerName, customerEmail, customerPhone, items, totalAmount } = req.body;
-    
+
     // Validate required fields
     if (!customerName || !customerEmail || !customerPhone || !totalAmount || !items) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    
+
+    // Validate items array
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Order must contain at least one item' });
+    }
+
+    // Validate total amount
+    if (totalAmount <= 0) {
+      return res.status(400).json({ error: 'Total amount must be greater than 0' });
+    }
+
+    // Verify user owns this order (email should match authenticated user)
+    if (customerEmail !== req.user.email) {
+      return res.status(403).json({ error: 'Order email must match authenticated user' });
+    }
+
     // Create order
     console.log('Inserting order into database...');
     const orderResult = await pool.query(
       'INSERT INTO orders (customer_name, customer_email, customer_phone, total_amount) VALUES ($1, $2, $3, $4) RETURNING id',
       [customerName, customerEmail, customerPhone, totalAmount]
     );
-    
+
     const orderId = orderResult.rows[0].id;
     console.log('Order created with ID:', orderId);
-    
-    // Add order items
+
+    // Add order items with validation
     console.log('Adding order items...');
     for (const item of items) {
+      if (!item.productId || !item.quantity || !item.price) {
+        return res.status(400).json({ error: 'Invalid item data' });
+      }
+
+      if (item.quantity <= 0 || item.price <= 0) {
+        return res.status(400).json({ error: 'Item quantity and price must be positive' });
+      }
+
       await pool.query(
         'INSERT INTO order_items (order_id, product_id, quantity, price) VALUES ($1, $2, $3, $4)',
         [orderId, item.productId, item.quantity, item.price]
       );
     }
-    
+
+    // Log user activity
+    await pool.query(
+      'INSERT INTO user_activity (user_id, action, ip, user_agent, metadata) VALUES ($1, $2, $3, $4, $5)',
+      [req.user.id, 'order_created', req.ip, req.get('User-Agent'), JSON.stringify({ orderId, totalAmount })]
+    );
+
     console.log('Order created successfully');
     res.json({ orderId, message: 'Order created successfully' });
   } catch (error) {

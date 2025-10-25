@@ -9,7 +9,12 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "build:prod": "NODE_ENV=production vite build",
-    "start": "npm run preview"
+    "start": "npm run preview",
+    "dev:full": "./start-dev.sh",
+    "server": "cd server && npm start",
+    "server:dev": "cd server && npm run dev",
+    "install:all": "npm install && cd server && npm install",
+    "build:all": "npm run build && cd server && npm run build"
   },
   "dependencies": {
     "framer-motion": "^12.23.0",

@@ -1,150 +1,207 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect, useCallback } from "react";
+import { useParams } from "react-router-dom";
+import { toast } from "react-hot-toast"; // eslint-disable-line no-unused-vars
+import LoadingSpinner from "../components/LoadingSpinner";
 
 function OrderTracking() {
   const { orderId } = useParams();
+  const [trackingId, setTrackingId] = useState(orderId || "");
   const [order, setOrder] = useState(null);
-  const [allOrders, setAllOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const orders = JSON.parse(localStorage.getItem('orders')) || [];
-    setAllOrders(orders);
-    
     if (orderId) {
-      const foundOrder = orders.find(o => o.id === orderId);
-      setOrder(foundOrder);
+      trackOrder(orderId);
     }
-  }, [orderId]);
+  }, [orderId, trackOrder]);
+
+  const trackOrder = useCallback(async (id = trackingId) => {
+    if (!id.trim()) {
+      setError("Please enter an order ID");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/orders/${id}`);
+
+      if (response.ok) {
+        const orderData = await response.json();
+
+        // Transform the order data to include timeline
+        const transformedOrder = {
+          ...orderData,
+          timeline: generateTimeline(orderData.status, orderData.created_at)
+        };
+
+        setOrder(transformedOrder);
+      } else {
+        setError("Order not found. Please check your order ID.");
+      }
+    } catch (err) {
+      console.error('Error tracking order:', err);
+      setError("Failed to track order. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [trackingId]);
+
+  const generateTimeline = (currentStatus, createdAt) => {
+    const statuses = [
+      { key: 'pending', label: 'Order Placed', completed: true },
+      { key: 'processing', label: 'Processing', completed: false },
+      { key: 'shipped', label: 'Shipped', completed: false },
+      { key: 'delivered', label: 'Delivered', completed: false }
+    ];
+
+    const statusOrder = ['pending', 'processing', 'shipped', 'delivered'];
+    const currentIndex = statusOrder.indexOf(currentStatus);
+
+    return statuses.map((status, index) => ({
+      ...status,
+      completed: index <= currentIndex || currentStatus === 'cancelled',
+      date: index === 0 ? new Date(createdAt).toLocaleString() : 
+            (index <= currentIndex ? 'Completed' : '')
+    }));
+  };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending_payment': return 'text-yellow-600 bg-yellow-50';
-      case 'paid': 
-      case 'confirmed': return 'text-green-600 bg-green-50';
-      case 'preparing': return 'text-blue-600 bg-blue-50';
-      case 'shipped': return 'text-purple-600 bg-purple-50';
-      case 'delivered': return 'text-green-700 bg-green-100';
-      case 'cancelled': return 'text-red-600 bg-red-50';
-      default: return 'text-gray-600 bg-gray-50';
+    switch (status?.toLowerCase()) {
+      case "pending":
+        return "text-yellow-600";
+      case "processing":
+        return "text-blue-600";
+      case "shipped":
+        return "text-purple-600";
+      case "delivered":
+        return "text-green-600";
+      case "cancelled":
+        return "text-red-600";
+      default:
+        return "text-gray-600";
     }
   };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'pending_payment': return 'Pending Payment';
-      case 'paid': return 'Payment Confirmed';
-      case 'confirmed': return 'Order Confirmed';
-      case 'preparing': return 'Preparing Order';
-      case 'shipped': return 'Shipped';
-      case 'delivered': return 'Delivered';
-      case 'cancelled': return 'Cancelled';
-      default: return status;
-    }
-  };
-
-  if (orderId && !order) {
-    return (
-      <div className="max-w-4xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-6 text-primary">Order Not Found</h1>
-        <p className="text-gray-600 mb-4">Order #{orderId} was not found.</p>
-        <Link to="/track" className="text-primary hover:underline">← Back to Order Tracking</Link>
-      </div>
-    );
-  }
-
-  if (orderId && order) {
-    return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="mb-6">
-          <Link to="/track" className="text-primary hover:underline">← Back to Order Tracking</Link>
-        </div>
-        
-        <h1 className="text-2xl font-bold mb-6 text-primary">Order #{order.id}</h1>
-        
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold mb-3">Order Details</h3>
-              <p><strong>Date:</strong> {new Date(order.date).toLocaleDateString()}</p>
-              <p><strong>Total:</strong> Ksh {order.total}</p>
-              <p><strong>Payment:</strong> {order.paymentMethod === 'mpesa' ? 'M-Pesa' : 'Cash on Delivery'}</p>
-              <div className="mt-2">
-                <span className={`px-3 py-1 rounded-full text-sm ${getStatusColor(order.status)}`}>
-                  {getStatusText(order.status)}
-                </span>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold mb-3">Delivery Information</h3>
-              <p><strong>Name:</strong> {order.customer.name}</p>
-              <p><strong>Phone:</strong> {order.customer.phone}</p>
-              <p><strong>Address:</strong> {order.customer.address}</p>
-              <p><strong>City:</strong> {order.customer.city}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="font-semibold mb-4">Order Items</h3>
-          <div className="space-y-3">
-            {order.items.map((item) => (
-              <div key={item.id} className="flex justify-between items-center border-b pb-3">
-                <div className="flex items-center gap-3">
-                  <img src={item.image} alt={item.title} className="w-12 h-12 rounded" />
-                  <div>
-                    <p className="font-medium">{item.title}</p>
-                    <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-                  </div>
-                </div>
-                <p className="font-medium">Ksh {item.price * item.quantity}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6 text-primary">Track Your Orders</h1>
-      
-      {allOrders.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-gray-600 mb-4">No orders found.</p>
-          <Link to="/products" className="bg-primary text-white px-6 py-3 rounded-full hover:bg-pink-700 transition">
-            Start Shopping
-          </Link>
+    <div className="max-w-4xl mx-auto p-6 sm:p-12 pt-24">
+      <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-8 text-center">
+        Track Your Order
+      </h1>
+
+      {/* Order ID Input */}
+      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <input
+            type="text"
+            value={trackingId}
+            onChange={(e) => setTrackingId(e.target.value)}
+            placeholder="Enter your order ID (e.g., 1, 2, 3...)"
+            className="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-500"
+          />
+          <button
+            onClick={() => trackOrder()}
+            disabled={loading}
+            className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-pink-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          >
+            {loading ? (
+              <>
+                <LoadingSpinner size="small" />
+                <span className="ml-2">Tracking...</span>
+              </>
+            ) : (
+              "Track Order"
+            )}
+          </button>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {allOrders.map((order) => (
-            <div key={order.id} className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-semibold text-lg">Order #{order.id}</h3>
-                  <p className="text-gray-600">{new Date(order.date).toLocaleDateString()}</p>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-sm ${getStatusColor(order.status)}`}>
-                  {getStatusText(order.status)}
-                </span>
+        {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+      </div>
+
+      {/* Order Details */}
+      {order && (
+        <div className="space-y-8">
+          {/* Order Summary */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Order #{order.id}
+            </h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-semibold text-gray-700 mb-2">
+                  Customer Information
+                </h3>
+                <p className="text-gray-600">{order.customer_name}</p>
+                <p className="text-gray-600">{order.customer_email}</p>
+                <p className="text-gray-600">{order.customer_phone}</p>
               </div>
-              
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm text-gray-600">{order.items.length} item(s)</p>
-                  <p className="font-semibold">Ksh {order.total}</p>
-                </div>
-                <Link 
-                  to={`/track/${order.id}`}
-                  className="bg-primary text-white px-4 py-2 rounded hover:bg-pink-700 transition"
-                >
-                  View Details
-                </Link>
+              <div>
+                <h3 className="font-semibold text-gray-700 mb-2">
+                  Order Status
+                </h3>
+                <p className={`font-bold text-lg ${getStatusColor(order.status)}`}>
+                  {order.status?.toUpperCase()}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Placed on {new Date(order.created_at).toLocaleDateString()}
+                </p>
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* Order Items */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="font-semibold text-gray-700 mb-4">Order Items</h3>
+            <div className="space-y-3">
+              {order.items?.map((item, index) => (
+                <div key={index} className="flex justify-between items-center">
+                  <span className="text-gray-700">
+                    {item.product_name} x {item.quantity}
+                  </span>
+                  <span className="font-semibold">
+                    Ksh {(item.price * item.quantity).toLocaleString()}
+                  </span>
+                </div>
+              ))}
+              <div className="border-t pt-3 flex justify-between items-center font-bold text-lg">
+                <span>Total</span>
+                <span className="text-primary">
+                  Ksh {parseFloat(order.total_amount).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Order Timeline */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="font-semibold text-gray-700 mb-6">Order Timeline</h3>
+            <div className="space-y-4">
+              {order.timeline?.map((step, index) => (
+                <div key={index} className="flex items-center gap-4">
+                  <div
+                    className={`w-4 h-4 rounded-full ${
+                      step.completed
+                        ? "bg-green-500"
+                        : "bg-gray-300 border-2 border-gray-400"
+                    }`}
+                  />
+                  <div className="flex-1">
+                    <p
+                      className={`font-medium ${
+                        step.completed ? "text-gray-800" : "text-gray-500"
+                      }`}
+                    >
+                      {step.label}
+                    </p>
+                    {step.date && (
+                      <p className="text-sm text-gray-500">{step.date}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>

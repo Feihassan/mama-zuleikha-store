@@ -1,9 +1,9 @@
 import { useState } from 'react';
 
-function FilterSidebar({ onFilterChange, filters }) {
+function FilterSidebar({ onFilterChange }) {
   const [priceRange, setPriceRange] = useState([0, 5000]);
   const [selectedCategories, setSelectedCategories] = useState([]);
-  const [selectedBrands, setSelectedBrands] = useState([]);
+  const [inStock, setInStock] = useState(false);
   const [rating, setRating] = useState(0);
 
   const categories = [
@@ -14,13 +14,7 @@ function FilterSidebar({ onFilterChange, filters }) {
     'Wellness'
   ];
 
-  const brands = [
-    'GlowHub',
-    'Natural Beauty',
-    'Pure Skin',
-    'Radiant Care',
-    'Beauty Essentials'
-  ];
+  // Removed unused brands list to avoid lint warnings
 
   const handleCategoryChange = (category) => {
     const updated = selectedCategories.includes(category)
@@ -28,19 +22,40 @@ function FilterSidebar({ onFilterChange, filters }) {
       : [...selectedCategories, category];
     
     setSelectedCategories(updated);
-    onFilterChange({ ...filters, categories: updated });
+    updateFilters({ categories: updated });
   };
 
   const handlePriceChange = (newRange) => {
     setPriceRange(newRange);
-    onFilterChange({ ...filters, priceRange: newRange });
+    updateFilters({ priceRange: newRange });
+  };
+
+  const handleRatingChange = (newRating) => {
+    setRating(newRating);
+    updateFilters({ rating: newRating });
+  };
+
+  const handleInStockChange = (checked) => {
+    setInStock(checked);
+    updateFilters({ inStock: checked });
+  };
+
+  const updateFilters = (newFilter) => {
+    const updatedFilters = {
+      categories: selectedCategories,
+      priceRange,
+      rating,
+      inStock,
+      ...newFilter
+    };
+    onFilterChange(updatedFilters);
   };
 
   const clearFilters = () => {
     setSelectedCategories([]);
-    setSelectedBrands([]);
     setPriceRange([0, 5000]);
     setRating(0);
+    setInStock(false);
     onFilterChange({});
   };
 
@@ -104,7 +119,7 @@ function FilterSidebar({ onFilterChange, filters }) {
                 name="rating"
                 value={stars}
                 checked={rating === stars}
-                onChange={(e) => setRating(parseInt(e.target.value))}
+                onChange={(e) => handleRatingChange(parseInt(e.target.value))}
                 className="text-pink-600 focus:ring-pink-500"
               />
               <div className="ml-2 flex items-center">
@@ -133,16 +148,11 @@ function FilterSidebar({ onFilterChange, filters }) {
           <label className="flex items-center">
             <input
               type="checkbox"
+              checked={inStock}
+              onChange={(e) => handleInStockChange(e.target.checked)}
               className="rounded border-gray-300 text-pink-600 focus:ring-pink-500"
             />
-            <span className="ml-2 text-sm text-gray-700">In Stock</span>
-          </label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              className="rounded border-gray-300 text-pink-600 focus:ring-pink-500"
-            />
-            <span className="ml-2 text-sm text-gray-700">On Sale</span>
+            <span className="ml-2 text-sm text-gray-700">In Stock Only</span>
           </label>
         </div>
       </div>
