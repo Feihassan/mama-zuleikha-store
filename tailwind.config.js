@@ -4,10 +4,18 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: "#ec4899", // rose pink
-        secondary: "#fce7f3", // soft blush
-        accent: "#f9a8d4", // lighter pink
-        dark: "#4b5563", // slate
+        primary: '#059669', // Changed to emerald green
+        secondary: '#10b981', // Light emerald
+        accent: '#34d399', // Bright emerald
+        success: '#10b981', // Emerald
+        warning: '#f59e0b', // Amber
+        error: '#ef4444', // Red
+        dark: '#1f2937', // Dark gray
+      },
+      backgroundImage: {
+        'gradient-primary': 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+        'gradient-secondary': 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+        'gradient-accent': 'linear-gradient(135deg, #34d399 0%, #059669 100%)',
       },
       fontFamily: {
         sans: ["'Poppins'", "sans-serif"],

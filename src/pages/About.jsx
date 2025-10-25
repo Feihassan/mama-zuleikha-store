@@ -1,18 +1,18 @@
 function About() {
   return (
     <div className="max-w-4xl mx-auto p-6 sm:p-10">
-      <h1 className="text-3xl font-bold text-center text-primary mb-8">About Mama Zulekha</h1>
+      <h1 className="text-3xl font-bold text-center text-primary mb-8">About GlowHub</h1>
       
       {/* Hero Section */}
       <div className="text-center mb-12">
         <img 
           src="https://images.pexels.com/photos/3762879/pexels-photo-3762879.jpeg" 
-          alt="Mama Zulekha founder" 
+          alt="GlowHub founder"
           className="w-48 h-48 rounded-full mx-auto mb-6 object-cover"
         />
         <h2 className="text-2xl font-semibold mb-4">Our Story</h2>
         <p className="text-lg text-gray-700 leading-relaxed">
-          Founded with love and passion for natural beauty, Mama Zulekha brings you 
+          Founded with love and passion for natural beauty, GlowHub brings you
           handcrafted skincare and cosmetics that celebrate your natural glow.
         </p>
       </div>
@@ -40,7 +40,7 @@ function About() {
 
       {/* Why Choose Us */}
       <div className="mb-12">
-        <h3 className="text-2xl font-semibold text-center mb-6">Why Choose Mama Zulekha?</h3>
+        <h3 className="text-2xl font-semibold text-center mb-6">Why Choose GlowHub?</h3>
         <div className="grid sm:grid-cols-3 gap-6">
           <div className="text-center">
             <div className="text-4xl mb-3">🌿</div>
@@ -70,7 +70,7 @@ function About() {
       <div className="text-center bg-primary text-white p-8 rounded-lg">
         <h3 className="text-xl font-semibold mb-4">Ready to Glow?</h3>
         <p className="mb-6">
-          Join thousands of satisfied customers who trust Mama Zulekha for their beauty needs.
+          Join thousands of satisfied customers who trust GlowHub for their beauty needs.
         </p>
         <a 
           href="/products" 

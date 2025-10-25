@@ -4,16 +4,37 @@ import { toast } from 'react-hot-toast';
 
 function AdminLogin() {
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (password === 'mama2024') {
-      localStorage.setItem('adminAuth', 'true');
-      toast.success('Welcome back!');
-      navigate('/admin/products');
-    } else {
-      toast.error('Invalid password');
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        toast.success('Welcome back!');
+        navigate('/admin');
+      } else {
+        toast.error(data.error || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('Login failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -32,9 +53,10 @@ function AdminLogin() {
           />
           <button
             type="submit"
-            className="w-full bg-primary text-white py-2 rounded hover:bg-pink-700"
+            disabled={loading}
+            className="w-full bg-primary text-white py-2 rounded hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Login
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
       </div>

@@ -10,10 +10,13 @@ import Products from "./pages/Products";
 import ProductDetails from "./pages/ProductDetails";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
-import ThankYou from "./pages/ThankYou"; 
+import ThankYou from "./pages/ThankYou";
 import AdminOrders from "./pages/AdminOrders";
 import AdminProducts from "./pages/AdminProducts";
+import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Contact from "./pages/Contact";
 import About from "./pages/About";
 import TrackOrder from "./pages/TrackOrder";
@@ -34,12 +37,15 @@ function App() {
           <Route path="/thank-you" element={<ThankYou />} />
           <Route path="/track" element={<OrderTracking />} />
           <Route path="/track/:orderId" element={<OrderTracking />} />
-          <Route path="/admin" element={<AdminOrders />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/track" element={<TrackOrder />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/products" element={<AdminProducts />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/orders" element={<AdminOrders />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/track-order" element={<TrackOrder />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/products" element={<AdminProducts />} />
         </Routes>
 
         <Footer />

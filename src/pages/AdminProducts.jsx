@@ -5,21 +5,12 @@ import { toast } from 'react-hot-toast';
 function AdminProducts() {
   const navigate = useNavigate();
   
-  useEffect(() => {
-    if (!localStorage.getItem('adminAuth')) {
-      navigate('/admin/login');
-    }
-  }, [navigate]);
-
   const handleLogout = () => {
-    localStorage.removeItem('adminAuth');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     navigate('/');
     toast.success('Logged out');
   };
-
-  if (!localStorage.getItem('adminAuth')) {
-    return null;
-  }
   const [products, setProducts] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -34,56 +25,108 @@ function AdminProducts() {
   });
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('adminProducts')) || [];
-    setProducts(stored);
+    fetchProducts();
   }, []);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    const newProduct = {
-      id: editingProduct ? editingProduct.id : Date.now(),
-      ...form,
-      price: parseInt(form.price),
-      originalPrice: parseInt(form.originalPrice),
-      rating: 4.5,
-      reviews: 0,
-      ingredients: []
-    };
+  const fetchProducts = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/products');
 
-    let updatedProducts;
-    if (editingProduct) {
-      updatedProducts = products.map(p => p.id === editingProduct.id ? newProduct : p);
-      toast.success('Product updated!');
-    } else {
-      updatedProducts = [...products, newProduct];
-      toast.success('Product added!');
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data);
+      } else {
+        toast.error('Failed to fetch products');
+
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('Failed to fetch products');
     }
-
-    setProducts(updatedProducts);
-    localStorage.setItem('adminProducts', JSON.stringify(updatedProducts));
-    
-    setForm({ title: '', category: 'Skincare', price: '', originalPrice: '', description: '', image: '', inStock: true });
-    setShowForm(false);
-    setEditingProduct(null);
   };
 
-  const deleteProduct = (id) => {
-    const updated = products.filter(p => p.id !== id);
-    setProducts(updated);
-    localStorage.setItem('adminProducts', JSON.stringify(updated));
-    toast.success('Product deleted!');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const productData = {
+      name: form.title,
+      description: form.description,
+      price: parseFloat(form.price),
+      image_url: form.image,
+      category: form.category,
+      stock_quantity: form.inStock ? 50 : 0 // Default stock quantity
+    };
+
+    try {
+      let response;
+
+      if (editingProduct) {
+        response = await fetch(`/api/products/${editingProduct.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(productData)
+        });
+        toast.success('Product updated!');
+      } else {
+        response = await fetch('/api/products', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(productData)
+        });
+        toast.success('Product added!');
+      }
+
+      if (response.ok) {
+        fetchProducts(); // Refresh products list
+        setForm({ title: '', category: 'Skincare', price: '', originalPrice: '', description: '', image: '', inStock: true });
+        setShowForm(false);
+        setEditingProduct(null);
+      } else {
+        toast.error('Failed to save product');
+      }
+    } catch (error) {
+      console.error('Error saving product:', error);
+      toast.error('Failed to save product');
+    }
+  };
+
+  const deleteProduct = async (id) => {
+    if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/products/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        fetchProducts(); // Refresh products list
+        toast.success('Product deleted!');
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Failed to delete product');
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast.error('Failed to delete product');
+    }
   };
 
   const editProduct = (product) => {
     setForm({
-      title: product.title,
+      title: product.name,
       category: product.category,
       price: product.price.toString(),
-      originalPrice: product.originalPrice.toString(),
+      originalPrice: product.price.toString(), // Use same price for now
       description: product.description,
-      image: product.image,
-      inStock: product.inStock
+      image: product.image_url,
+      inStock: product.stock_quantity > 0
     });
     setEditingProduct(product);
     setShowForm(true);
@@ -94,6 +137,12 @@ function AdminProducts() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-primary">Manage Products</h1>
         <div className="flex gap-2">
+          <button
+            onClick={() => navigate('/admin/orders')}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            View Orders
+          </button>
           <button
             onClick={() => setShowForm(true)}
             className="bg-primary text-white px-4 py-2 rounded hover:bg-pink-700"
@@ -150,14 +199,33 @@ function AdminProducts() {
               className="border rounded px-3 py-2"
               required
             />
-            <input
-              type="url"
-              placeholder="Image URL"
-              value={form.image}
-              onChange={(e) => setForm({...form, image: e.target.value})}
-              className="border rounded px-3 py-2"
-              required
-            />
+            <div className="flex flex-col gap-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      setForm({...form, image: event.target.result});
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+                className="border rounded px-3 py-2"
+              />
+              <input
+                type="url"
+                placeholder="Or paste image URL"
+                value={form.image}
+                onChange={(e) => setForm({...form, image: e.target.value})}
+                className="border rounded px-3 py-2"
+              />
+              {form.image && (
+                <img src={form.image} alt="Preview" className="w-20 h-20 rounded object-cover" />
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -197,12 +265,12 @@ function AdminProducts() {
       <div className="grid gap-4">
         {products.map(product => (
           <div key={product.id} className="border rounded-lg p-4 flex gap-4">
-            <img src={product.image} alt={product.title} className="w-20 h-20 rounded object-cover" />
+            <img src={product.image_url} alt={product.name} className="w-20 h-20 rounded object-cover" />
             <div className="flex-1">
-              <h3 className="font-semibold">{product.title}</h3>
+              <h3 className="font-semibold">{product.name}</h3>
               <p className="text-sm text-gray-600">{product.category}</p>
-              <p className="text-sm">Ksh {product.price} <span className="line-through text-gray-400">Ksh {product.originalPrice}</span></p>
-              <p className="text-xs text-gray-500">{product.description.substring(0, 100)}...</p>
+              <p className="text-sm">Ksh {product.price} (Stock: {product.stock_quantity})</p>
+              <p className="text-xs text-gray-500">{product.description?.substring(0, 100)}...</p>
             </div>
             <div className="flex flex-col gap-2">
               <button
@@ -213,7 +281,13 @@ function AdminProducts() {
               </button>
               <button
                 onClick={() => deleteProduct(product.id)}
-                className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
+                className={`px-3 py-1 rounded text-sm ${
+                  product.stock_quantity === 0
+                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                    : 'bg-red-500 text-white hover:bg-red-600'
+                }`}
+                disabled={product.stock_quantity === 0}
+                title={product.stock_quantity === 0 ? 'Cannot delete products that have been ordered' : 'Delete product'}
               >
                 Delete
               </button>

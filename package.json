@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:prod": "NODE_ENV=production vite build",
+    "start": "npm run preview"
   },
   "dependencies": {
     "framer-motion": "^12.23.0",

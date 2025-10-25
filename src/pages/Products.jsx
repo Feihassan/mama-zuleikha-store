@@ -1,34 +1,39 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import ProductCard from "../components/ProductCard";
+import ProductGrid from "../components/ProductGrid";
+import FilterSidebar from "../components/FilterSidebar";
 
 function Products() {
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState("All");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState('featured');
+  const [viewMode, setViewMode] = useState('grid');
+  const [filters, setFilters] = useState({});
   const [searchParams] = useSearchParams();
+  const [showFilters, setShowFilters] = useState(false);
 
   // Fetch products from backend
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/products');
+        const response = await fetch('/api/products');
         if (response.ok) {
           const data = await response.json();
-          // Transform backend data to match frontend structure
           const transformedProducts = data.map(product => ({
             id: product.id,
             title: product.name,
             category: product.category,
             price: parseFloat(product.price),
+            originalPrice: parseFloat(product.price) * 1.2,
             description: product.description,
             image: product.image_url,
-            inStock: product.stock_quantity > 0
+            inStock: product.stock_quantity > 0,
+            rating: 4.5,
+            reviews: Math.floor(Math.random() * 200) + 10
           }));
           setProducts(transformedProducts);
-        } else {
-          console.error('Failed to fetch products');
+          setFilteredProducts(transformedProducts);
         }
       } catch (error) {
         console.error('Error fetching products:', error);
@@ -36,82 +41,156 @@ function Products() {
         setLoading(false);
       }
     };
-
     fetchProducts();
   }, []);
 
-  const allCategories = ["All", ...new Set(products.map((p) => p.category))];
-
+  // Apply filters and sorting
   useEffect(() => {
-    const urlSearch = searchParams.get('search');
-    if (urlSearch) {
-      setSearchTerm(urlSearch);
+    let filtered = [...products];
+
+    // Apply category filter from URL
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      filtered = filtered.filter(p => p.category.toLowerCase() === categoryParam.toLowerCase());
     }
-  }, [searchParams]);
 
-  // Filter by category
-  const categoryFiltered =
-    selected === "All"
-      ? products
-      : products.filter((p) => p.category === selected);
+    // Apply search filter
+    const searchParam = searchParams.get('search');
+    if (searchParam) {
+      filtered = filtered.filter(p => 
+        p.title.toLowerCase().includes(searchParam.toLowerCase()) ||
+        p.description.toLowerCase().includes(searchParam.toLowerCase())
+      );
+    }
 
-  // Filter by search term (on the 'title' field)
-  const filtered = categoryFiltered.filter((product) =>
-    product.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    // Apply other filters
+    if (filters.categories && filters.categories.length > 0) {
+      filtered = filtered.filter(p => filters.categories.includes(p.category));
+    }
+
+    if (filters.priceRange) {
+      filtered = filtered.filter(p => p.price <= filters.priceRange[1]);
+    }
+
+    // Apply sorting
+    switch (sortBy) {
+      case 'price-low':
+        filtered.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-high':
+        filtered.sort((a, b) => b.price - a.price);
+        break;
+      case 'rating':
+        filtered.sort((a, b) => b.rating - a.rating);
+        break;
+      case 'newest':
+        filtered.sort((a, b) => b.id - a.id);
+        break;
+      default:
+        break;
+    }
+
+    setFilteredProducts(filtered);
+  }, [products, filters, sortBy, searchParams]);
 
   if (loading) {
     return (
-      <div className="p-6 sm:p-8 max-w-7xl mx-auto text-center">
-        <div className="text-primary">Loading products...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading products...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 sm:p-8 max-w-7xl mx-auto">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-center text-primary">
-        Our Products
-      </h1>
-
-      {/* 🔍 Search Input */}
-      <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6">
-        <input
-          type="text"
-          placeholder="Search products..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="px-4 py-2 rounded-full border w-full sm:w-96 dark:text-black"
-        />
-      </div>
-
-      {/* 🔘 Category Buttons */}
-      <div className="flex flex-wrap justify-center gap-3 mb-8">
-        {allCategories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setSelected(cat)}
-            className={`px-4 py-2 text-sm sm:text-base rounded-full border transition ${
-              selected === cat
-                ? "bg-primary text-white"
-                : "text-primary border-pink-300"
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* 🛍 Product Grid */}
-      {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+    <div className="min-h-screen bg-gray-50 pt-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {searchParams.get('category') ? 
+              `${searchParams.get('category').charAt(0).toUpperCase() + searchParams.get('category').slice(1)} Products` : 
+              'All Products'
+            }
+          </h1>
+          <p className="text-gray-600">
+            Showing {filteredProducts.length} of {products.length} products
+          </p>
         </div>
-      ) : (
-        <p className="text-center text-gray-500 mt-6">No products found.</p>
-      )}
+
+        {/* Controls */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          {/* Filter Toggle (Mobile) */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="lg:hidden flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+            </svg>
+            Filters
+          </button>
+
+          <div className="flex items-center gap-4">
+            {/* Sort */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+            >
+              <option value="featured">Featured</option>
+              <option value="newest">Newest</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="rating">Highest Rated</option>
+            </select>
+
+            {/* View Mode */}
+            <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 ${viewMode === 'grid' ? 'bg-pink-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 ${viewMode === 'list' ? 'bg-pink-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-8">
+          {/* Sidebar Filters */}
+          <div className={`${showFilters ? 'block' : 'hidden'} lg:block w-full lg:w-64 flex-shrink-0`}>
+            <FilterSidebar onFilterChange={setFilters} filters={filters} />
+          </div>
+
+          {/* Products */}
+          <div className="flex-1">
+            {filteredProducts.length > 0 ? (
+              <ProductGrid products={filteredProducts} />
+            ) : (
+              <div className="text-center py-12">
+                <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+                <p className="text-gray-600">Try adjusting your filters or search terms</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
