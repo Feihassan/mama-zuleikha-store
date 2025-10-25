@@ -12,6 +12,11 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    allowedHosts: ['glowhub-store.onrender.com'],
+    port: process.env.PORT || 4173,
+    host: true,
+  },
   define: {
     global: 'globalThis',
   },
