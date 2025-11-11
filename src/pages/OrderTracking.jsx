@@ -104,7 +104,7 @@ function OrderTracking() {
           <button
             onClick={() => trackOrder()}
             disabled={loading}
-            className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-pink-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-secondary transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {loading ? (
               <>

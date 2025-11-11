@@ -1,13 +1,14 @@
 import express from 'express';
 import pool from '../db.js';
-import { authenticateToken, requireAdmin } from '../middleware/auth.js';
+import { authenticateToken, requireAdmin, requireSeller } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Create new order (authenticated users only)
 router.post('/', authenticateToken, async (req, res) => {
+  const client = await pool.connect();
   try {
-    console.log('Creating order with data:', req.body);
+    await client.query('BEGIN');
     const { customerName, customerEmail, customerPhone, items, totalAmount } = req.body;
 
     // Validate required fields
@@ -31,44 +32,46 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 
     // Create order
-    console.log('Inserting order into database...');
-    const orderResult = await pool.query(
+    const orderResult = await client.query(
       'INSERT INTO orders (customer_name, customer_email, customer_phone, total_amount) VALUES ($1, $2, $3, $4) RETURNING id',
       [customerName, customerEmail, customerPhone, totalAmount]
     );
 
     const orderId = orderResult.rows[0].id;
-    console.log('Order created with ID:', orderId);
 
     // Add order items with validation
-    console.log('Adding order items...');
     for (const item of items) {
       if (!item.productId || !item.quantity || !item.price) {
+        await client.query('ROLLBACK');
         return res.status(400).json({ error: 'Invalid item data' });
       }
 
       if (item.quantity <= 0 || item.price <= 0) {
+        await client.query('ROLLBACK');
         return res.status(400).json({ error: 'Item quantity and price must be positive' });
       }
 
-      await pool.query(
+      await client.query(
         'INSERT INTO order_items (order_id, product_id, quantity, price) VALUES ($1, $2, $3, $4)',
         [orderId, item.productId, item.quantity, item.price]
       );
     }
 
     // Log user activity
-    await pool.query(
+    await client.query(
       'INSERT INTO user_activity (user_id, action, ip, user_agent, metadata) VALUES ($1, $2, $3, $4, $5)',
       [req.user.id, 'order_created', req.ip, req.get('User-Agent'), JSON.stringify({ orderId, totalAmount })]
     );
 
-    console.log('Order created successfully');
+    await client.query('COMMIT');
     res.json({ orderId, message: 'Order created successfully' });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error creating order:', error.message);
     console.error('Full error:', error);
-    res.status(500).json({ error: 'Failed to create order', details: error.message });
+    res.status(500).json({ error: 'Failed to create order' });
+  } finally {
+    client.release();
   }
 });
 
@@ -100,10 +103,8 @@ router.get('/', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // Get all orders (seller view) - orders that include products belonging to the seller
-router.get('/seller', authenticateToken, async (req, res) => {
+router.get('/seller', authenticateToken, requireSeller, async (req, res) => {
   try {
-    if (req.user.role !== 'seller') return res.status(403).json({ error: 'Seller access required' });
-
     const result = await pool.query(`
       SELECT
         o.*,
@@ -183,7 +184,7 @@ router.patch('/:orderId/status', authenticateToken, requireAdmin, async (req, re
     res.json({ success: true, message: 'Order status updated successfully' });
   } catch (error) {
     console.error('Error updating order:', error);
-    res.status(500).json({ error: 'Failed to update order', details: error.message });
+    res.status(500).json({ error: 'Failed to update order' });
   }
 });
 
@@ -211,7 +212,7 @@ router.delete('/:orderId', authenticateToken, requireAdmin, async (req, res) => 
     res.json({ success: true, message: 'Order deleted successfully' });
   } catch (error) {
     console.error('Error deleting order:', error);
-    res.status(500).json({ error: 'Failed to delete order', details: error.message });
+    res.status(500).json({ error: 'Failed to delete order' });
   }
 });
 

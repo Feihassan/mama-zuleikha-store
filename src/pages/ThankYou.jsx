@@ -35,13 +35,13 @@ function ThankYou() {
       <div className="space-y-4">
         <Link
           to="/"
-          className="inline-block bg-primary text-white px-6 py-3 rounded-full hover:bg-pink-700 transition mr-4"
+          className="inline-block bg-primary text-white px-6 py-3 rounded-full hover:bg-secondary transition mr-4"
         >
           Continue Shopping
         </Link>
         <Link
           to="/track"
-          className="inline-block border border-primary text-primary px-6 py-3 rounded-full hover:bg-pink-50 transition"
+          className="inline-block border border-primary text-primary px-6 py-3 rounded-full hover:bg-light transition"
         >
           Track Order
         </Link>

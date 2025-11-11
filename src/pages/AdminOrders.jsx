@@ -8,16 +8,6 @@ function AdminOrders() {
   const [filter, setFilter] = useState('all');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/admin/login');
-      return;
-    }
-
-    fetchOrders();
-  }, [navigate, fetchOrders]);
-
   const fetchOrders = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
@@ -45,6 +35,16 @@ function AdminOrders() {
       setLoading(false);
     }
   }, [navigate]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/admin/login');
+      return;
+    }
+
+    fetchOrders();
+  }, [navigate, fetchOrders]);
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
@@ -121,7 +121,7 @@ function AdminOrders() {
           <h1 className="text-2xl font-bold text-primary">📋 Admin Orders</h1>
           <button
             onClick={() => navigate('/admin/products')}
-            className="bg-primary text-white px-4 py-2 rounded hover:bg-pink-700"
+            className="bg-primary text-white px-4 py-2 rounded hover:bg-secondary"
           >
             Manage Products
           </button>
@@ -137,7 +137,7 @@ function AdminOrders() {
         <h1 className="text-2xl font-bold text-primary">📋 Admin Orders</h1>
         <button
           onClick={() => navigate('/admin/products')}
-          className="bg-primary text-white px-4 py-2 rounded hover:bg-pink-700"
+          className="bg-primary text-white px-4 py-2 rounded hover:bg-secondary"
         >
           Manage Products
         </button>

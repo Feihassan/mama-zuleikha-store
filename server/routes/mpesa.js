@@ -40,7 +40,7 @@ router.post('/stkpush', async (req, res) => {
         PartyA: phone,
         PartyB: process.env.MPESA_SHORTCODE,
         PhoneNumber: phone,
-        CallBackURL: 'https://mydomain.com/api/mpesa/callback',
+        CallBackURL: 'https://webhook.site/#!/c8e2c8e2-c8e2-c8e2-c8e2-c8e2c8e2c8e2',
         AccountReference: 'MamaZulekha',
         TransactionDesc: 'Payment for order'
       },
@@ -118,10 +118,10 @@ router.post('/callback', async (req, res) => {
       if (ResultCode === 0) {
         console.log(`Payment successful for CheckoutRequestID: ${CheckoutRequestID}`);
         
-        // Update order status to 'paid'
+        // Update order status to 'processing'
         await pool.query(
           'UPDATE orders SET status = $1 WHERE mpesa_checkout_id = $2',
-          ['paid', CheckoutRequestID]
+          ['processing', CheckoutRequestID]
         );
         
         console.log(`Order status updated to 'paid' for CheckoutRequestID: ${CheckoutRequestID}`);

@@ -77,7 +77,7 @@ function ProductGrid({ products }) {
             {/* Quick Add to Cart */}
             <button
               onClick={() => addToCart(product)}
-              className="absolute bottom-3 left-3 right-3 bg-pink-500 text-white py-2 px-4 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-pink-600"
+              className="absolute bottom-3 left-3 right-3 bg-light0 text-white py-2 px-4 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-pink-600"
             >
               Quick Add to Cart
             </button>

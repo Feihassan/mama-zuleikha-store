@@ -147,7 +147,7 @@ function ProductDetails() {
           <button
             onClick={handleAddToCart}
             disabled={!product.inStock}
-            className="bg-primary text-white px-6 py-3 rounded-full hover:bg-pink-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="bg-primary text-white px-6 py-3 rounded-full hover:bg-secondary transition disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {product.inStock ? 'Add to Cart' : 'Out of Stock'}
           </button>

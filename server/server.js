@@ -12,6 +12,8 @@ import { orderRoutes } from './routes/orders.js';
 import { productRoutes } from './routes/products.js';
 import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
+import { reviewRoutes } from './routes/reviews.js';
+import { contactRoutes } from './routes/contact.js';
 import { cleanExpiredTokens } from './utils/jwt.js';
 
 dotenv.config();
@@ -69,6 +71,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/mpesa', mpesaRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Global error handler
 app.use((err, req, res, _next) => {
@@ -100,6 +104,6 @@ app.listen(PORT, () => {
   if (NODE_ENV === 'development') {
     console.log(`📱 Frontend: http://localhost:5173`);
     console.log(`🔧 API: http://localhost:${PORT}`);
-    console.log(`👤 Admin: admin@glowhub.com / admin123`);
+    console.log(`👤 Admin: ${process.env.ADMIN_EMAIL || 'admin@glowhub.com'} / ${process.env.ADMIN_PASSWORD || 'admin123'}`);
   }
 });

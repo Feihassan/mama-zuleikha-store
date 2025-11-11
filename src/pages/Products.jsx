@@ -13,14 +13,51 @@ function Products() {
   const [searchParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch products from backend
+  // Fetch products from backend with filters
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch('/api/products');
+        // Build query parameters for backend filtering
+        const params = new URLSearchParams();
+
+        // Add search parameter
+        const searchParam = searchParams.get('search');
+        if (searchParam) {
+          params.append('search', searchParam);
+        }
+
+        // Add category parameter
+        const categoryParam = searchParams.get('category');
+        if (categoryParam) {
+          params.append('category', categoryParam);
+        }
+
+        // Add sorting parameter (map frontend sort to backend sort)
+        const sortMapping = {
+          'price-low': 'price',
+          'price-high': 'price',
+          'newest': 'created_at',
+          'rating': 'created_at' // fallback
+        };
+        const sortOrderMapping = {
+          'price-low': 'asc',
+          'price-high': 'desc',
+          'newest': 'desc',
+          'rating': 'desc'
+        };
+
+        if (sortBy !== 'featured') {
+          params.append('sortBy', sortMapping[sortBy] || 'created_at');
+          params.append('sortOrder', sortOrderMapping[sortBy] || 'desc');
+        }
+
+        // Add pagination (for now, fetch all but could be paginated)
+        params.append('limit', '100'); // Maximum allowed limit
+
+        const response = await fetch(`/api/products?${params.toString()}`);
         if (response.ok) {
           const data = await response.json();
-          const transformedProducts = data.map(product => ({
+          const transformedProducts = data.products.map(product => ({
             id: product.id,
             title: product.name,
             category: product.category,
@@ -45,34 +82,19 @@ function Products() {
       }
     };
     fetchProducts();
-  }, []);
+  }, [searchParams, sortBy]);
 
-  // Apply filters and sorting
+  // Apply client-side filters only (backend handles search, category, and sorting)
   useEffect(() => {
     let filtered = [...products];
 
-    // Apply category filter from URL
-    const categoryParam = searchParams.get('category');
-    if (categoryParam) {
-      filtered = filtered.filter(p => p.category.toLowerCase() === categoryParam.toLowerCase());
-    }
-
-    // Apply search filter
-    const searchParam = searchParams.get('search');
-    if (searchParam) {
-      filtered = filtered.filter(p => 
-        p.title.toLowerCase().includes(searchParam.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchParam.toLowerCase())
-      );
-    }
-
-    // Apply other filters
+    // Apply additional client-side filters
     if (filters.categories && filters.categories.length > 0) {
       filtered = filtered.filter(p => filters.categories.includes(p.category));
     }
 
     if (filters.priceRange) {
-      filtered = filtered.filter(p => 
+      filtered = filtered.filter(p =>
         p.price >= filters.priceRange[0] && p.price <= filters.priceRange[1]
       );
     }
@@ -85,26 +107,8 @@ function Products() {
       filtered = filtered.filter(p => p.rating >= filters.rating);
     }
 
-    // Apply sorting
-    switch (sortBy) {
-      case 'price-low':
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-high':
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-      case 'rating':
-        filtered.sort((a, b) => b.rating - a.rating);
-        break;
-      case 'newest':
-        filtered.sort((a, b) => b.id - a.id);
-        break;
-      default:
-        break;
-    }
-
     setFilteredProducts(filtered);
-  }, [products, filters, sortBy, searchParams]);
+  }, [products, filters]);
 
   if (loading) {
     return (
@@ -164,7 +168,7 @@ function Products() {
             <div className="flex border border-gray-300 rounded-lg overflow-hidden">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 ${viewMode === 'grid' ? 'bg-pink-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                className={`p-2 ${viewMode === 'grid' ? 'bg-light0 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -172,7 +176,7 @@ function Products() {
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 ${viewMode === 'list' ? 'bg-pink-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                className={`p-2 ${viewMode === 'list' ? 'bg-light0 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />

@@ -65,9 +65,8 @@ const initDatabase = async () => {
           name VARCHAR(255) NOT NULL,
           email VARCHAR(255) UNIQUE NOT NULL,
           password_hash VARCHAR(255) NOT NULL,
-          role VARCHAR(50) DEFAULT 'user',
-          is_verified BOOLEAN DEFAULT FALSE,
-          verified_at TIMESTAMP NULL,
+          role VARCHAR(50) DEFAULT 'customer',
+          email_verified BOOLEAN DEFAULT FALSE,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -130,21 +129,19 @@ const initDatabase = async () => {
         ('Lip Balm Set', 'Moisturizing lip balm in 3 natural flavors', 800.00, 'https://images.pexels.com/photos/8129903/pexels-photo-8129903.jpeg', 'lip-care', 100),
         ('Face Mask', 'Hydrating clay mask for all skin types', 1200.00, 'https://images.pexels.com/photos/7755515/pexels-photo-7755515.jpeg', 'skincare', 30)
       `);
-      console.log('Sample products inserted');
     }
 
-    console.log('Database initialized successfully');
+    // Database initialized successfully
   } catch (error) {
     console.error('Database initialization error:', error);
   }
 };
 
 // Test connection and initialize
-pool.query('SELECT NOW()', (err, res) => {
+pool.query('SELECT NOW()', (err, _res) => {
   if (err) {
     console.error('Database connection error:', err);
   } else {
-    console.log('Connected to PostgreSQL:', res.rows[0].now);
     initDatabase();
   }
 });

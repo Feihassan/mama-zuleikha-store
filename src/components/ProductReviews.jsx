@@ -76,7 +76,7 @@ function ProductReviews({ productId }) {
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="bg-primary text-white px-4 py-2 rounded hover:bg-pink-700 transition"
+          className="bg-primary text-white px-4 py-2 rounded hover:bg-secondary transition"
         >
           Write Review
         </button>
@@ -113,7 +113,7 @@ function ProductReviews({ productId }) {
             <div className="flex gap-2">
               <button
                 type="submit"
-                className="bg-primary text-white px-4 py-2 rounded hover:bg-pink-700"
+                className="bg-primary text-white px-4 py-2 rounded hover:bg-secondary"
               >
                 Submit Review
               </button>

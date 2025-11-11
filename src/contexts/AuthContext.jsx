@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 
 const AuthContext = createContext();
@@ -14,13 +14,28 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [accessToken, setAccessToken] = useState(localStorage.getItem('accessToken'));
+  const [accessToken, setAccessToken] = useState(localStorage.getItem('token'));
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
+  const logout = useCallback(async () => {
+    try {
+      if (accessToken) {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}` },
+          credentials: 'include'
+        });
+      }
+    } catch {
+      // Ignore logout errors
+    } finally {
+      setAccessToken(null);
+      setUser(null);
+      localStorage.removeItem('token');
+      toast.success('Logged out successfully');
+    }
+  }, [accessToken]);
 
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       if (!accessToken) {
         setLoading(false);
@@ -39,12 +54,16 @@ export const AuthProvider = ({ children }) => {
       } else {
         logout();
       }
-    } catch (error) {
+    } catch {
       logout();
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessToken, logout]);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const refreshToken = async () => {
     logout();
@@ -63,46 +82,63 @@ export const AuthProvider = ({ children }) => {
       if (response.ok) {
         setAccessToken(data.accessToken);
         setUser(data.user);
-        localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem('token', data.accessToken);
         toast.success('Login successful!');
         return { success: true };
       } else {
         return { success: false, error: data.error };
       }
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Login failed. Please try again.' };
     }
   };
 
-  const logout = async () => {
+  const adminLogin = async (email, password, isCreate = false, name = '') => {
     try {
-      if (accessToken) {
-        await fetch('/api/auth/logout', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${accessToken}` },
-          credentials: 'include'
-        });
+      const endpoint = isCreate ? '/api/auth/admin/create' : '/api/auth/admin/login';
+      const body = isCreate ? { name, email, password } : { email, password };
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setAccessToken(data.accessToken);
+        setUser(data.user);
+        localStorage.setItem('token', data.accessToken);
+        toast.success(isCreate ? 'Admin account created!' : 'Admin login successful!');
+        return { success: true };
+      } else {
+        return { success: false, error: data.error };
       }
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setAccessToken(null);
-      setUser(null);
-      localStorage.removeItem('accessToken');
-      toast.success('Logged out successfully');
+    } catch {
+      return { success: false, error: 'Admin operation failed. Please try again.' };
     }
   };
 
+
   const hasRole = (role) => user?.role === role;
+
+  // Helper function to get auth headers
+  const getAuthHeaders = () => {
+    if (!accessToken) return {};
+    return { 'Authorization': `Bearer ${accessToken}` };
+  };
 
   const value = {
     user,
     loading,
     accessToken,
     login,
+    adminLogin,
     logout,
     hasRole,
-    refreshToken
+    refreshToken,
+    getAuthHeaders
   };
 
   return (

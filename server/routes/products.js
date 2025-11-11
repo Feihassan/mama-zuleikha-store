@@ -1,6 +1,6 @@
 import express from 'express';
 import pool from '../db.js';
-import { authenticateToken, requireAdmin, optionalAuth } from '../middleware/auth.js';
+import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 import Joi from 'joi';
 
 const router = express.Router();
@@ -10,7 +10,7 @@ const productSchema = Joi.object({
   name: Joi.string().min(1).max(255).required(),
   description: Joi.string().min(1).max(1000).required(),
   price: Joi.number().positive().required(),
-  image_url: Joi.string().uri().max(500).allow(null, ''),
+  image_url: Joi.string().allow(null, ''),
   category: Joi.string().min(1).max(100).required(),
   stock_quantity: Joi.number().integer().min(0).default(0)
 });
@@ -27,7 +27,7 @@ const searchSchema = Joi.object({
 });
 
 // Get all products with filtering, searching, and pagination
-router.get('/', optionalAuth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     // Validate query parameters
     const { error, value } = searchSchema.validate(req.query);
@@ -39,7 +39,7 @@ router.get('/', optionalAuth, async (req, res) => {
     const offset = (page - 1) * limit;
 
     // Build query dynamically
-    let query = 'SELECT * FROM products WHERE 1=1';
+    let query = 'SELECT *, COUNT(*) OVER() AS total_count FROM products WHERE 1=1';
     const params = [];
     let paramIndex = 1;
 
@@ -71,10 +71,7 @@ router.get('/', optionalAuth, async (req, res) => {
     }
 
     // Add sorting
-    const validSortColumns = ['name', 'price', 'created_at'];
-    const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'created_at';
-    const sortDirection = sortOrder === 'asc' ? 'ASC' : 'DESC';
-    query += ` ORDER BY ${sortColumn} ${sortDirection}`;
+    query += ` ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`;
 
     // Add pagination
     query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
@@ -83,40 +80,14 @@ router.get('/', optionalAuth, async (req, res) => {
     // Execute main query
     const result = await pool.query(query, params);
 
-    // Get total count for pagination
-    let countQuery = 'SELECT COUNT(*) FROM products WHERE 1=1';
-    const countParams = [];
-    let countParamIndex = 1;
-
-    if (search) {
-      countQuery += ` AND (name ILIKE $${countParamIndex} OR description ILIKE $${countParamIndex})`;
-      countParams.push(`%${search}%`);
-      countParamIndex++;
-    }
-
-    if (category) {
-      countQuery += ` AND category = $${countParamIndex}`;
-      countParams.push(category);
-      countParamIndex++;
-    }
-
-    if (minPrice !== undefined) {
-      countQuery += ` AND price >= $${countParamIndex}`;
-      countParams.push(minPrice);
-      countParamIndex++;
-    }
-
-    if (maxPrice !== undefined) {
-      countQuery += ` AND price <= $${countParamIndex}`;
-      countParams.push(maxPrice);
-      countParamIndex++;
-    }
-
-    const countResult = await pool.query(countQuery, countParams);
-    const totalCount = parseInt(countResult.rows[0].count);
+    const totalCount = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
+    const products = result.rows.map((row) => {
+      const { total_count: _total_count, ...product } = row;
+      return product;
+    });
 
     res.json({
-      products: result.rows,
+      products: products,
       pagination: {
         page,
         limit,
@@ -182,7 +153,7 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Error creating product:', error);
-    res.status(500).json({ error: 'Failed to create product', details: error.message });
+    res.status(500).json({ error: 'Failed to create product' });
   }
 });
 
@@ -227,7 +198,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error updating product:', error);
-    res.status(500).json({ error: 'Failed to update product', details: error.message });
+    res.status(500).json({ error: 'Failed to update product' });
   }
 });
 
@@ -267,7 +238,7 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     console.error('Error deleting product:', error);
-    res.status(500).json({ error: 'Failed to delete product', details: error.message });
+    res.status(500).json({ error: 'Failed to delete product' });
   }
 });
 

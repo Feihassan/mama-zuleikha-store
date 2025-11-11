@@ -37,7 +37,6 @@ export const sendVerificationEmail = async (email, token) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('Verification email sent to:', email);
   } catch (error) {
     console.error('Failed to send verification email:', error);
     throw error;
@@ -70,7 +69,6 @@ export const sendPasswordResetEmail = async (email, token) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('Password reset email sent to:', email);
   } catch (error) {
     console.error('Failed to send password reset email:', error);
     throw error;

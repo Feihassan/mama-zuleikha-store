@@ -15,7 +15,7 @@ trap cleanup SIGINT SIGTERM
 
 # Start backend server
 echo "📡 Starting backend server..."
-cd server && npm start &
+cd server && npm run dev &
 BACKEND_PID=$!
 
 # Wait a moment for backend to start

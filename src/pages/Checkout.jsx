@@ -134,12 +134,11 @@ function Checkout() {
           const orderData = await orderResponse.json();
           
           // Update order with M-Pesa checkout ID
-          const token = localStorage.getItem('token');
           await fetch(`/api/orders/${orderData.orderId}/status`, {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
             body: JSON.stringify({
               status: 'pending',
@@ -147,6 +146,7 @@ function Checkout() {
             })
           });
 
+          // Note: Order status will be updated to 'processing' by M-Pesa callback when payment succeeds
           localStorage.removeItem("cart");
           navigate("/thank-you", { state: { orderId: orderData.orderId, paymentPending: true } });
         } else {
@@ -303,7 +303,7 @@ function Checkout() {
           <button
             type="submit"
             disabled={loading || cart.length === 0}
-            className="w-full bg-primary text-white px-6 py-3 rounded-full hover:bg-pink-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            className="w-full bg-primary text-white px-6 py-3 rounded-full hover:bg-secondary transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {loading ? (
               <>

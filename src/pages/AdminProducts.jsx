@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 
 function AdminProducts() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -24,15 +25,6 @@ function AdminProducts() {
     inStock: true
   });
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/admin/login');
-      return;
-    }
-    fetchProducts();
-  }, [navigate, fetchProducts]);
-
   const fetchProducts = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
@@ -44,7 +36,7 @@ function AdminProducts() {
 
       if (response.ok) {
         const data = await response.json();
-        setProducts(data);
+        setProducts(data.products || []);
       } else if (response.status === 401 || response.status === 403) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -58,6 +50,20 @@ function AdminProducts() {
     }
   }, [navigate]);
 
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/admin/login');
+      return;
+    }
+    fetchProducts();
+    
+    // Auto-show form if 'add' parameter is present
+    if (searchParams.get('add') === 'true') {
+      setShowForm(true);
+    }
+  }, [navigate, fetchProducts, searchParams]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -69,6 +75,8 @@ function AdminProducts() {
       category: form.category,
       stock_quantity: form.inStock ? 50 : 0 // Default stock quantity
     };
+
+    console.log('Submitting product data:', productData);
 
     try {
       let response;
@@ -84,7 +92,6 @@ function AdminProducts() {
           },
           body: JSON.stringify(productData)
         });
-        toast.success('Product updated!');
       } else {
         response = await fetch('/api/products', {
           method: 'POST',
@@ -94,16 +101,20 @@ function AdminProducts() {
           },
           body: JSON.stringify(productData)
         });
-        toast.success('Product added!');
       }
 
+      console.log('Response status:', response.status);
+      
       if (response.ok) {
+        toast.success(editingProduct ? 'Product updated!' : 'Product added!');
         fetchProducts(); // Refresh products list
         setForm({ title: '', category: 'Skincare', price: '', originalPrice: '', description: '', image: '', inStock: true });
         setShowForm(false);
         setEditingProduct(null);
       } else {
-        toast.error('Failed to save product');
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        toast.error(errorData.error || 'Failed to save product');
       }
     } catch (error) {
       console.error('Error saving product:', error);
@@ -165,7 +176,7 @@ function AdminProducts() {
           </button>
           <button
             onClick={() => setShowForm(true)}
-            className="bg-primary text-white px-4 py-2 rounded hover:bg-pink-700"
+            className="bg-primary text-white px-4 py-2 rounded hover:bg-secondary"
           >
             Add Product
           </button>
@@ -263,7 +274,7 @@ function AdminProducts() {
               required
             />
             <div className="md:col-span-2 flex gap-2">
-              <button type="submit" className="bg-primary text-white px-4 py-2 rounded hover:bg-pink-700">
+              <button type="submit" className="bg-primary text-white px-4 py-2 rounded hover:bg-secondary">
                 {editingProduct ? 'Update' : 'Add'} Product
               </button>
               <button
@@ -283,7 +294,7 @@ function AdminProducts() {
       )}
 
       <div className="grid gap-4">
-        {products.map(product => (
+        {Array.isArray(products) && products.map(product => (
           <div key={product.id} className="border rounded-lg p-4 flex gap-4">
             <img src={product.image_url} alt={product.name} className="w-20 h-20 rounded object-cover" />
             <div className="flex-1">

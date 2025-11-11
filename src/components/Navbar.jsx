@@ -149,7 +149,7 @@ function Navbar() {
               <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <button type="submit" className="absolute right-2 top-1.5 bg-pink-500 text-white px-3 py-1 rounded text-sm hover:bg-pink-600">
+              <button type="submit" className="absolute right-2 top-1.5 bg-light0 text-white px-3 py-1 rounded text-sm hover:bg-pink-600">
                 Search
               </button>
             </form>
@@ -170,7 +170,7 @@ function Navbar() {
                   <Link
                     key={category.to}
                     to={category.to}
-                    className="block px-4 py-2 text-gray-700 hover:bg-pink-50 hover:text-pink-600 first:rounded-t-lg last:rounded-b-lg"
+                    className="block px-4 py-2 text-gray-700 hover:bg-light hover:text-pink-600 first:rounded-t-lg last:rounded-b-lg"
                   >
                     {category.label}
                   </Link>
@@ -199,7 +199,7 @@ function Navbar() {
                       <div className="px-4 py-2 text-sm text-gray-500 border-b">
                         Welcome, {user.name}
                       </div>
-                      <Link to="/track" className="block px-4 py-2 text-gray-700 hover:bg-pink-50 hover:text-pink-600">
+                      <Link to="/track" className="block px-4 py-2 text-gray-700 hover:bg-light hover:text-pink-600">
                         Track Order
                       </Link>
                       <button
@@ -209,17 +209,17 @@ function Navbar() {
                           setUser(null);
                           setShowAccountMenu(false);
                         }}
-                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-pink-50 hover:text-pink-600 rounded-b-lg"
+                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-light hover:text-pink-600 rounded-b-lg"
                       >
                         Sign Out
                       </button>
                     </>
                   ) : (
                     <>
-                      <Link to="/login" className="block px-4 py-2 text-gray-700 hover:bg-pink-50 hover:text-pink-600 rounded-t-lg">
+                      <Link to="/login" className="block px-4 py-2 text-gray-700 hover:bg-light hover:text-pink-600 rounded-t-lg">
                         Sign In
                       </Link>
-                      <Link to="/register" className="block px-4 py-2 text-gray-700 hover:bg-pink-50 hover:text-pink-600 rounded-b-lg">
+                      <Link to="/register" className="block px-4 py-2 text-gray-700 hover:bg-light hover:text-pink-600 rounded-b-lg">
                         Create Account
                       </Link>
                     </>
@@ -236,7 +236,7 @@ function Navbar() {
             >
               <Link
                 to="/cart"
-                className="relative p-3 rounded-xl text-gray-700 hover:text-pink-600 hover:bg-pink-50 transition-all duration-300 group"
+                className="relative p-3 rounded-xl text-gray-700 hover:text-pink-600 hover:bg-light transition-all duration-300 group"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.1 5H19M7 13l-1.1 5M7 13h10m0 0v8a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
@@ -258,7 +258,7 @@ function Navbar() {
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={toggleMenu}
-            className="lg:hidden p-2 rounded-xl text-gray-700 hover:text-pink-600 hover:bg-pink-50 transition-all duration-300"
+            className="lg:hidden p-2 rounded-xl text-gray-700 hover:text-pink-600 hover:bg-light transition-all duration-300"
           >
             <motion.svg
               animate={{ rotate: isOpen ? 180 : 0 }}

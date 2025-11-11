@@ -117,7 +117,7 @@ function Contact() {
           </div>
           <button
             type="submit"
-            className="w-full bg-primary text-white py-3 rounded-full hover:bg-pink-700 transition"
+            className="w-full bg-primary text-white py-3 rounded-full hover:bg-secondary transition"
           >
             Send Message
           </button>

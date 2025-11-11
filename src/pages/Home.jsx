@@ -10,10 +10,11 @@ function Home() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch('/api/products');
+        const response = await fetch('/api/products?limit=10');
         if (response.ok) {
           const data = await response.json();
-          const transformedProducts = data.slice(0, 3).map(product => ({
+          const products = data.products || [];
+          const transformedProducts = products.slice(0, 3).map(product => ({
             id: product.id,
             title: product.name,
             category: product.category,
@@ -25,8 +26,8 @@ function Home() {
           setNewArrivals(transformedProducts);
 
           // Set Deal of the Day - first product with 20% discount
-          if (data.length > 0) {
-            const dealProduct = data[0];
+          if (products.length > 0) {
+            const dealProduct = products[0];
             setDealOfTheDay({
               id: dealProduct.id,
               title: dealProduct.name,
@@ -109,7 +110,7 @@ function Home() {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                   <Link
                     to="/products"
-                    className="group relative bg-white text-purple-600 px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 hover:bg-pink-50 hover:scale-105 shadow-lg hover:shadow-xl"
+                    className="group relative bg-white text-purple-600 px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 hover:bg-light hover:scale-105 shadow-lg hover:shadow-xl"
                   >
                     <span className="relative z-10">Shop Collection</span>
                     <div className="absolute inset-0 bg-gradient-to-r from-pink-400 to-purple-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

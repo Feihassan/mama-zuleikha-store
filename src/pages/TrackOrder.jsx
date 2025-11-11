@@ -72,7 +72,7 @@ function TrackOrder() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-primary text-white px-6 py-3 rounded-r-full hover:bg-pink-700 transition disabled:opacity-50"
+            className="bg-primary text-white px-6 py-3 rounded-r-full hover:bg-secondary transition disabled:opacity-50"
           >
             {loading ? 'Tracking...' : 'Track'}
           </button>

@@ -50,7 +50,7 @@ function Register() {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('token', data.token);
+        localStorage.setItem('token', data.accessToken);
         localStorage.setItem('user', JSON.stringify(data.user));
         toast.success('Account created successfully!');
         navigate('/');
@@ -131,7 +131,7 @@ function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary text-white py-2 rounded hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-primary text-white py-2 rounded hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>

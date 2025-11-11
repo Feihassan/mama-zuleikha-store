@@ -19,7 +19,7 @@ function About() {
 
       {/* Mission & Values */}
       <div className="grid md:grid-cols-2 gap-8 mb-12">
-        <div className="bg-pink-50 p-6 rounded-lg">
+        <div className="bg-light p-6 rounded-lg">
           <h3 className="text-xl font-semibold text-primary mb-3">Our Mission</h3>
           <p className="text-gray-700">
             To provide high-quality, natural beauty products that enhance your confidence 
@@ -27,7 +27,7 @@ function About() {
             radiant and empowered.
           </p>
         </div>
-        <div className="bg-pink-50 p-6 rounded-lg">
+        <div className="bg-light p-6 rounded-lg">
           <h3 className="text-xl font-semibold text-primary mb-3">Our Values</h3>
           <ul className="text-gray-700 space-y-2">
             <li>✨ Natural & Safe Ingredients</li>

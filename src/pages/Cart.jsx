@@ -238,7 +238,7 @@ function Cart() {
 
               <Link
                 to="/products"
-                className="w-full border-2 border-pink-200 text-pink-600 hover:bg-pink-50 py-3 px-6 rounded-2xl font-semibold text-lg transition-all duration-300 hover:scale-105 block text-center"
+                className="w-full border-2 border-pink-200 text-pink-600 hover:bg-light py-3 px-6 rounded-2xl font-semibold text-lg transition-all duration-300 hover:scale-105 block text-center"
               >
                 Continue Shopping
               </Link>
