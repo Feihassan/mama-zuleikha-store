@@ -23,7 +23,9 @@ const searchSchema = Joi.object({
   sortBy: Joi.string().valid('name', 'price', 'created_at').default('created_at'),
   sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(20)
+  limit: Joi.number().integer().min(1).max(100).default(20),
+  featured: Joi.string().valid('true', 'false'),
+  exclude: Joi.number().integer()
 });
 
 // Get all products with filtering, searching, and pagination
@@ -36,12 +38,25 @@ router.get('/', async (req, res) => {
     }
 
     const { search, category, minPrice, maxPrice, sortBy, sortOrder, page, limit } = value;
+    const { featured, exclude } = req.query;
     const offset = (page - 1) * limit;
 
     // Build query dynamically
     let query = 'SELECT *, COUNT(*) OVER() AS total_count FROM products WHERE 1=1';
     const params = [];
     let paramIndex = 1;
+
+    // Add featured filter (for bestsellers)
+    if (featured === 'true') {
+      query += ` AND stock_quantity > 0`; // Only show in-stock items as featured
+    }
+
+    // Add exclude filter (for related products)
+    if (exclude) {
+      query += ` AND id != $${paramIndex}`;
+      params.push(exclude);
+      paramIndex++;
+    }
 
     // Add search filter
     if (search) {
@@ -70,8 +85,12 @@ router.get('/', async (req, res) => {
       paramIndex++;
     }
 
-    // Add sorting
-    query += ` ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`;
+    // Add sorting (featured products sorted by stock quantity)
+    if (featured === 'true') {
+      query += ` ORDER BY stock_quantity DESC, created_at DESC`;
+    } else {
+      query += ` ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`;
+    }
 
     // Add pagination
     query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
@@ -98,6 +117,34 @@ router.get('/', async (req, res) => {
   } catch (error) {
     console.error('Error fetching products:', error);
     res.status(500).json({ error: 'Failed to fetch products' });
+  }
+});
+
+// Get categories
+router.get('/categories', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT DISTINCT category as name, category as id FROM products WHERE category IS NOT NULL ORDER BY category'
+    );
+    
+    // Add sample image URLs for categories
+    const categoryImages = {
+      'Skincare': 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400',
+      'Makeup': 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=400',
+      'Body Care': 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=400',
+      'Wellness': 'https://images.unsplash.com/photo-1541643600914-78b084683601?w=400'
+    };
+    
+    const categories = result.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      image_url: categoryImages[row.name] || 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400'
+    }));
+    
+    res.json({ categories });
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ error: 'Failed to fetch categories' });
   }
 });
 

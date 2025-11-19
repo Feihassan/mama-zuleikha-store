@@ -1,4 +1,3 @@
-import { motion } from "framer-motion"; // eslint-disable-line no-unused-vars
 import { Link } from "react-router-dom";
 
 function Footer() {
@@ -7,216 +6,154 @@ function Footer() {
     { name: "Facebook", icon: "👥", href: "#" },
     { name: "TikTok", icon: "🎵", href: "#" },
     { name: "Pinterest", icon: "📌", href: "#" },
-    { name: "YouTube", icon: "📺", href: "#" },
   ];
 
   const footerLinks = {
     shop: [
-      { name: "Products", href: "/products" },
-      { name: "Categories", href: "/products" },
-      { name: "New Arrivals", href: "/products" },
-      { name: "Deal of the Day", href: "/" },
+      { name: "Skincare", href: "/products?category=skincare" },
+      { name: "Makeup", href: "/products?category=makeup" },
+      { name: "Fragrance", href: "/products?category=fragrance" },
+      { name: "New Arrivals", href: "/products?sort=newest" },
+      { name: "Best Sellers", href: "/products?sort=popular" },
     ],
     support: [
-      { name: "Track Order", href: "/track" },
+      { name: "Track Your Order", href: "/track" },
+      { name: "Shipping & Returns", href: "/shipping" },
+      { name: "Size Guide", href: "/size-guide" },
       { name: "Contact Us", href: "/contact" },
-      { name: "About Us", href: "/about" },
-      { name: "FAQ", href: "/contact" },
+      { name: "FAQ", href: "/faq" },
     ],
-    legal: [
-      { name: "Privacy Policy", href: "#" },
-      { name: "Terms of Service", href: "#" },
-      { name: "Shipping Info", href: "#" },
-      { name: "Returns", href: "#" },
+    company: [
+      { name: "About Us", href: "/about" },
+      { name: "Careers", href: "/careers" },
+      { name: "Press", href: "/press" },
+      { name: "Sustainability", href: "/sustainability" },
     ],
   };
 
   return (
-    <footer className="bg-gradient-to-br from-gray-900 via-purple-900 to-pink-900 text-white relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}></div>
-      </div>
-
-      {/* Floating Elements */}
-      <div className="absolute top-10 left-10 w-20 h-20 bg-light0/20 rounded-full blur-xl animate-pulse"></div>
-      <div className="absolute bottom-10 right-10 w-32 h-32 bg-purple-500/20 rounded-full blur-xl animate-pulse delay-1000"></div>
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-          {/* Brand Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="lg:col-span-1"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-pink-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-xl">MZ</span>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold">GlowHub</h3>
-                <p className="text-sm text-gray-300">Beauty Store</p>
-              </div>
-            </div>
-            <p className="text-gray-300 mb-6 leading-relaxed">
-              Your trusted source for natural, handcrafted beauty products.
-              Glow naturally with our premium skincare and cosmetics.
-            </p>
-            <div className="flex gap-4">
-              {socialLinks.map((social, index) => (
-                <motion.a
-                  key={social.name}
-                  href={social.href}
-                  whileHover={{ scale: 1.2, rotate: 5 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-lg flex items-center justify-center hover:bg-white/20 transition-all duration-300"
-                  initial={{ opacity: 0, scale: 0 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
-                >
-                  <span className="text-lg">{social.icon}</span>
-                </motion.a>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Shop Links */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            <h4 className="text-lg font-semibold mb-4 text-pink-300">Shop</h4>
-            <ul className="space-y-3">
-              {footerLinks.shop.map((link, index) => (
-                <motion.li
-                  key={link.name}
-                  initial={{ opacity: 0, x: -10 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
-                >
-                  <Link
-                    to={link.href}
-                    className="text-gray-300 hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block"
-                  >
-                    {link.name}
-                  </Link>
-                </motion.li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Support Links */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <h4 className="text-lg font-semibold mb-4 text-purple-300">Support</h4>
-            <ul className="space-y-3">
-              {footerLinks.support.map((link, index) => (
-                <motion.li
-                  key={link.name}
-                  initial={{ opacity: 0, x: -10 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
-                >
-                  <Link
-                    to={link.href}
-                    className="text-gray-300 hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block"
-                  >
-                    {link.name}
-                  </Link>
-                </motion.li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Legal Links */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            <h4 className="text-lg font-semibold mb-4 text-indigo-300">Legal</h4>
-            <ul className="space-y-3">
-              {footerLinks.legal.map((link, index) => (
-                <motion.li
-                  key={link.name}
-                  initial={{ opacity: 0, x: -10 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
-                >
-                  <a
-                    href={link.href}
-                    className="text-gray-300 hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block"
-                  >
-                    {link.name}
-                  </a>
-                </motion.li>
-              ))}
-            </ul>
-          </motion.div>
-        </div>
-
-        {/* Newsletter Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="bg-white/5 backdrop-blur-lg rounded-2xl p-8 mb-8 border border-white/10"
-        >
+    <footer className="bg-white border-t border-gray-100">
+      {/* Newsletter Section */}
+      <div className="bg-gradient-to-r from-primary to-secondary py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h3 className="text-2xl font-bold mb-2">Stay in the Glow Loop! ✨</h3>
-            <p className="text-gray-300 mb-6 max-w-md mx-auto">
-              Get exclusive beauty tips, new product alerts, and special offers delivered to your inbox.
+            <h3 className="text-2xl font-bold text-white mb-2">Stay Beautiful</h3>
+            <p className="text-white/90 mb-6 max-w-md mx-auto">
+              Get beauty tips, exclusive offers, and new product updates
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-400 backdrop-blur-sm"
+                className="flex-1 px-4 py-3 rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-white/50"
               />
-              <button className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg">
+              <button className="bg-white text-primary px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
                 Subscribe
               </button>
             </div>
           </div>
-        </motion.div>
+        </div>
+      </div>
 
-        {/* Bottom Section */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4"
-        >
-          <p className="text-gray-400 text-sm">
-            © {new Date().getFullYear()} GlowHub Beauty Store. All rights reserved.
-          </p>
-          <div className="flex items-center gap-6 text-sm text-gray-400">
-            <span>Made with 💖 for beauty lovers</span>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span>All systems operational</span>
+      {/* Main Footer */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
+          {/* Brand Section */}
+          <div className="lg:col-span-2">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-r from-primary to-secondary rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">MZ</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Mama Zuleikha</h3>
+                <p className="text-sm text-gray-500">Beauty & Cosmetics</p>
+              </div>
+            </div>
+            <p className="text-gray-600 mb-6 leading-relaxed">
+              Discover premium beauty products that enhance your natural glow. 
+              From skincare essentials to makeup must-haves.
+            </p>
+            <div className="flex gap-3">
+              {socialLinks.map((social) => (
+                <a
+                  key={social.name}
+                  href={social.href}
+                  className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-primary hover:text-white transition-colors"
+                >
+                  <span className="text-sm">{social.icon}</span>
+                </a>
+              ))}
             </div>
           </div>
-        </motion.div>
+
+          {/* Shop Links */}
+          <div>
+            <h4 className="text-sm font-semibold mb-4 text-gray-900 uppercase tracking-wide">Shop</h4>
+            <ul className="space-y-2">
+              {footerLinks.shop.map((link) => (
+                <li key={link.name}>
+                  <Link
+                    to={link.href}
+                    className="text-gray-600 hover:text-primary transition-colors text-sm"
+                  >
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Support Links */}
+          <div>
+            <h4 className="text-sm font-semibold mb-4 text-gray-900 uppercase tracking-wide">Support</h4>
+            <ul className="space-y-2">
+              {footerLinks.support.map((link) => (
+                <li key={link.name}>
+                  <Link
+                    to={link.href}
+                    className="text-gray-600 hover:text-primary transition-colors text-sm"
+                  >
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Company Links */}
+          <div>
+            <h4 className="text-sm font-semibold mb-4 text-gray-900 uppercase tracking-wide">Company</h4>
+            <ul className="space-y-2">
+              {footerLinks.company.map((link) => (
+                <li key={link.name}>
+                  <Link
+                    to={link.href}
+                    className="text-gray-600 hover:text-primary transition-colors text-sm"
+                  >
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+
+
+        {/* Bottom Section */}
+        <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-gray-500 text-sm">
+            © {new Date().getFullYear()} Mama Zuleikha Beauty Store. All rights reserved.
+          </p>
+          <div className="flex items-center gap-6 text-sm">
+            <Link to="/privacy" className="text-gray-500 hover:text-primary">Privacy Policy</Link>
+            <Link to="/terms" className="text-gray-500 hover:text-primary">Terms of Service</Link>
+            <div className="flex items-center gap-2 text-gray-500">
+              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span>Secure Shopping</span>
+            </div>
+          </div>
+        </div>
       </div>
     </footer>
   );

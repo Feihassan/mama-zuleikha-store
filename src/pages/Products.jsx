@@ -1,79 +1,33 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import ProductGrid from "../components/ProductGrid";
-import FilterSidebar from "../components/FilterSidebar";
+import { useSearchParams, Link } from "react-router-dom";
 
 function Products() {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState('featured');
-  const [viewMode, setViewMode] = useState('grid');
-  const [filters, setFilters] = useState({});
+  const [sortBy, setSortBy] = useState('popularity');
+  const [filters, setFilters] = useState({
+    categories: [],
+    priceRange: [10, 200],
+    rating: 0
+  });
   const [searchParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch products from backend with filters
+
+
   useEffect(() => {
     const fetchProducts = async () => {
+      setLoading(true);
       try {
-        // Build query parameters for backend filtering
-        const params = new URLSearchParams();
-
-        // Add search parameter
-        const searchParam = searchParams.get('search');
-        if (searchParam) {
-          params.append('search', searchParam);
-        }
-
-        // Add category parameter
         const categoryParam = searchParams.get('category');
-        if (categoryParam) {
-          params.append('category', categoryParam);
-        }
-
-        // Add sorting parameter (map frontend sort to backend sort)
-        const sortMapping = {
-          'price-low': 'price',
-          'price-high': 'price',
-          'newest': 'created_at',
-          'rating': 'created_at' // fallback
-        };
-        const sortOrderMapping = {
-          'price-low': 'asc',
-          'price-high': 'desc',
-          'newest': 'desc',
-          'rating': 'desc'
-        };
-
-        if (sortBy !== 'featured') {
-          params.append('sortBy', sortMapping[sortBy] || 'created_at');
-          params.append('sortOrder', sortOrderMapping[sortBy] || 'desc');
-        }
-
-        // Add pagination (for now, fetch all but could be paginated)
-        params.append('limit', '100'); // Maximum allowed limit
-
-        const response = await fetch(`/api/products?${params.toString()}`);
+        const url = categoryParam ? `/api/products?category=${categoryParam}` : '/api/products';
+        
+        const response = await fetch(url);
         if (response.ok) {
           const data = await response.json();
-          const transformedProducts = data.products.map(product => ({
-            id: product.id,
-            title: product.name,
-            category: product.category,
-            price: parseFloat(product.price),
-            originalPrice: parseFloat(product.price) * 1.2,
-            description: product.description,
-            image: product.image_url || '/api/placeholder/300/300',
-            inStock: product.stock_quantity > 0,
-            rating: 4.5,
-            reviews: Math.floor(Math.random() * 200) + 10,
-            stockQuantity: product.stock_quantity
-          }));
-          setProducts(transformedProducts);
-          setFilteredProducts(transformedProducts);
-        } else {
-          console.error('Failed to fetch products:', response.status);
+          setProducts(data.products || []);
+          setFilteredProducts(data.products || []);
         }
       } catch (error) {
         console.error('Error fetching products:', error);
@@ -81,14 +35,14 @@ function Products() {
         setLoading(false);
       }
     };
-    fetchProducts();
-  }, [searchParams, sortBy]);
 
-  // Apply client-side filters only (backend handles search, category, and sorting)
+    fetchProducts();
+  }, [searchParams]);
+
+  // Apply filters
   useEffect(() => {
     let filtered = [...products];
 
-    // Apply additional client-side filters
     if (filters.categories && filters.categories.length > 0) {
       filtered = filtered.filter(p => filters.categories.includes(p.category));
     }
@@ -99,22 +53,26 @@ function Products() {
       );
     }
 
-    if (filters.inStock) {
-      filtered = filtered.filter(p => p.inStock);
-    }
-
-    if (filters.rating) {
-      filtered = filtered.filter(p => p.rating >= filters.rating);
-    }
-
     setFilteredProducts(filtered);
   }, [products, filters]);
+
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      categories: [],
+      priceRange: [10, 200],
+      rating: 0
+    });
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-gray-600">Loading products...</p>
         </div>
       </div>
@@ -122,93 +80,156 @@ function Products() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {searchParams.get('category') ? 
-              `${searchParams.get('category').charAt(0).toUpperCase() + searchParams.get('category').slice(1)} Products` : 
-              'All Products'
-            }
-          </h1>
-          <p className="text-gray-600">
-            Showing {filteredProducts.length} of {products.length} products
-          </p>
-        </div>
+    <main className="container mx-auto flex flex-1 flex-col px-4 py-8 lg:flex-row lg:gap-8">
+      {/* Filter Sidebar */}
+      <aside className="w-full lg:w-64 xl:w-72 shrink-0 mb-8 lg:mb-0">
+        <div className="sticky top-24 space-y-6">
+          <div className="space-y-4">
+            <h3 className="text-lg font-bold">Filters</h3>
+            
+            {/* Category Filter */}
+            <div>
+              <h4 className="font-semibold mb-2">Category</h4>
+              <div className="space-y-1.5">
+                {products.reduce((categories, product) => {
+                  if (!categories.includes(product.category)) {
+                    categories.push(product.category);
+                  }
+                  return categories;
+                }, []).map((category) => (
+                  <label key={category} className="flex items-center space-x-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="rounded border-gray-300 text-primary focus:ring-primary/50"
+                      checked={filters.categories.includes(category)}
+                      onChange={(e) => {
+                        const newCategories = e.target.checked 
+                          ? [...filters.categories, category]
+                          : filters.categories.filter(c => c !== category);
+                        handleFilterChange({ ...filters, categories: newCategories });
+                      }}
+                    />
+                    <span>{category}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
 
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          {/* Filter Toggle (Mobile) */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="lg:hidden flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
-            </svg>
-            Filters
-          </button>
+            {/* Price Range */}
+            <div>
+              <h4 className="font-semibold mb-2">Price Range</h4>
+              <div className="relative h-1 w-full rounded-full bg-gray-200">
+                <div className="absolute h-1 rounded-full bg-primary" style={{ left: '10%', width: '60%' }}></div>
+                <div className="absolute -top-1.5 h-4 w-4 rounded-full bg-white border-2 border-primary cursor-pointer" style={{ left: '10%' }}></div>
+                <div className="absolute -top-1.5 h-4 w-4 rounded-full bg-white border-2 border-primary cursor-pointer" style={{ left: '70%' }}></div>
+              </div>
+              <div className="flex justify-between mt-2 text-sm text-gray-500">
+                <span>$10</span>
+                <span>$200</span>
+              </div>
+            </div>
 
-          <div className="flex items-center gap-4">
-            {/* Sort */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
-            >
-              <option value="featured">Featured</option>
-              <option value="newest">Newest</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-              <option value="rating">Highest Rated</option>
-            </select>
-
-            {/* View Mode */}
-            <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 ${viewMode === 'grid' ? 'bg-light0 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 ${viewMode === 'list' ? 'bg-light0 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                </svg>
-              </button>
+            {/* Customer Rating */}
+            <div>
+              <h4 className="font-semibold mb-2">Customer Rating</h4>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1 cursor-pointer">
+                  <span className="text-primary text-lg">★★★★</span><span className="text-gray-300 text-lg">☆</span>
+                  <span className="text-sm ml-1">& Up</span>
+                </div>
+                <div className="flex items-center gap-1 cursor-pointer opacity-60">
+                  <span className="text-primary text-lg">★★★</span><span className="text-gray-300 text-lg">☆☆</span>
+                  <span className="text-sm ml-1">& Up</span>
+                </div>
+              </div>
             </div>
           </div>
+          
+          {/* Filter Buttons */}
+          <div className="flex flex-col gap-2">
+            <button className="w-full flex h-10 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+              Apply Filters
+            </button>
+            <button 
+              onClick={clearFilters}
+              className="w-full flex h-10 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-transparent text-gray-600 hover:bg-primary/10 text-sm font-bold leading-normal tracking-[0.015em]"
+            >
+              Clear All
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="w-full">
+        {/* Breadcrumbs */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <Link to="/" className="text-sm font-medium text-gray-500 hover:text-primary">Home</Link>
+          <span className="text-gray-500 text-sm">/</span>
+          <Link to="/products" className="text-sm font-medium text-gray-500 hover:text-primary">Skincare</Link>
+          <span className="text-gray-500 text-sm">/</span>
+          <span className="text-sm font-medium">Moisturizers</span>
         </div>
 
-        <div className="flex gap-8">
-          {/* Sidebar Filters */}
-          <div className={`${showFilters ? 'block' : 'hidden'} lg:block w-full lg:w-64 flex-shrink-0`}>
-            <FilterSidebar onFilterChange={setFilters} filters={filters} />
-          </div>
+        {/* Page Heading */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h1 className="text-4xl font-black leading-tight tracking-[-0.033em]">All Skincare Products</h1>
+        </div>
 
-          {/* Products */}
-          <div className="flex-1">
-            {filteredProducts.length > 0 ? (
-              <ProductGrid products={filteredProducts} />
-            ) : (
-              <div className="text-center py-12">
-                <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
-                <p className="text-gray-600">Try adjusting your filters or search terms</p>
+        {/* Sorting Chips */}
+        <div className="flex flex-wrap gap-3 mb-6">
+          <button className="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary/20 px-4">
+            <p className="text-primary text-sm font-medium">Sort by: Popularity</p>
+            <span className="text-lg text-primary">▼</span>
+          </button>
+          <button className="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-gray-100 px-4 hover:bg-primary/20">
+            <p className="text-sm font-medium">Price</p>
+            <span className="text-lg">▼</span>
+          </button>
+          <button className="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-gray-100 px-4 hover:bg-primary/20">
+            <p className="text-sm font-medium">Rating</p>
+            <span className="text-lg">▼</span>
+          </button>
+        </div>
+
+        {/* Products Grid */}
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, index) => (
+              <div key={index} className="animate-pulse">
+                <div className="bg-gray-200 aspect-[3/4] rounded-xl mb-3"></div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded"></div>
+                  <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
               </div>
-            )}
+            ))}
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => (
+              <Link key={product.id} to={`/products/${product.id}`} className="flex flex-col group">
+                <div className="relative overflow-hidden rounded-xl mb-3">
+                  <div 
+                    className="w-full bg-center bg-no-repeat aspect-[3/4] bg-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
+                    style={{ backgroundImage: `url(${product.image_url})` }}
+                  ></div>
+                  <button className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <span className="text-xl">🛒</span>
+                  </button>
+                </div>
+                <div>
+                  <p className="font-medium leading-normal">{product.name}</p>
+                  <p className="text-sm text-gray-500">{product.description}</p>
+                  <p className="font-semibold mt-1">${parseFloat(product.price).toFixed(2)}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
+    </main>
   );
 }
 

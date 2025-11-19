@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import LoadingSpinner from "../components/LoadingSpinner";
 
@@ -9,25 +9,29 @@ function Checkout() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [form, setForm] = useState({
-    name: "",
     email: "",
+    firstName: "",
+    lastName: "",
     phone: "",
     address: "",
     city: "",
-    paymentMethod: "mpesa"
+    country: "Kenya",
+    mpesaPhone: ""
   });
+
+
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("cart")) || [];
     setCart(stored);
   }, []);
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subtotal = cart.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
+  const total = subtotal;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -36,7 +40,8 @@ function Checkout() {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!form.name.trim()) newErrors.name = 'Name is required';
+    if (!form.firstName.trim()) newErrors.firstName = 'First name is required';
+    if (!form.lastName.trim()) newErrors.lastName = 'Last name is required';
     if (!form.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(form.email)) {
@@ -44,11 +49,13 @@ function Checkout() {
     }
     if (!form.phone.trim()) {
       newErrors.phone = 'Phone number is required';
-    } else {
-      const cleanPhone = form.phone.replace(/\s+/g, '');
-      if (!/^(\+?254|0)[17]\d{8}$/.test(cleanPhone)) {
-        newErrors.phone = 'Please enter a valid Kenyan phone number (e.g., 0712345678)';
-      }
+    } else if (!/^254\d{9}$/.test(form.phone.replace(/\s+/g, ''))) {
+      newErrors.phone = 'Please enter a valid Kenyan phone number (254XXXXXXXXX)';
+    }
+    if (!form.mpesaPhone.trim()) {
+      newErrors.mpesaPhone = 'M-Pesa phone number is required';
+    } else if (!/^254\d{9}$/.test(form.mpesaPhone.replace(/\s+/g, ''))) {
+      newErrors.mpesaPhone = 'Please enter a valid M-Pesa phone number (254XXXXXXXXX)';
     }
     if (!form.address.trim()) newErrors.address = 'Address is required';
     if (!form.city.trim()) newErrors.city = 'City is required';
@@ -65,281 +72,327 @@ function Checkout() {
       return;
     }
 
-    if (cart.length === 0) {
-      toast.error("Your cart is empty");
-      return;
-    }
-
     setLoading(true);
 
     try {
-      if (form.paymentMethod === 'mpesa') {
-        // Format phone number for M-Pesa
-        let phoneNumber = form.phone.replace(/[\s+\-()]/g, '');
-        if (phoneNumber.startsWith('0')) {
-          phoneNumber = '254' + phoneNumber.substring(1);
-        } else if (phoneNumber.startsWith('254')) {
-          // Already in correct format
-        } else if (/^[17]\d{8}$/.test(phoneNumber)) {
-          phoneNumber = '254' + phoneNumber;
-        } else {
-          throw new Error('Invalid phone number format');
+      // Create WhatsApp message
+      const orderSummary = cart.map(item => 
+        `${item.name} - Qty: ${item.quantity} - $${parseFloat(item.price).toFixed(2)}`
+      ).join('\n');
+      
+      const whatsappMessage = `New Order Request:\n\nCustomer: ${form.firstName} ${form.lastName}\nEmail: ${form.email}\nPhone: ${form.phone}\nAddress: ${form.address}, ${form.city}, ${form.country}\n\nOrder Details:\n${orderSummary}\n\nTotal: $${total.toFixed(2)}\nM-Pesa Phone: ${form.mpesaPhone}\n\nPlease confirm this order and send M-Pesa payment request.`;
+      
+      // Open WhatsApp with pre-filled message
+      const whatsappUrl = `https://wa.me/254727109399?text=${encodeURIComponent(whatsappMessage)}`;
+      window.open(whatsappUrl, '_blank');
+      
+      // Submit order to backend
+      const orderData = {
+        items: cart,
+        customer: {
+          email: form.email,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          phone: form.phone
+        },
+        delivery: {
+          address: form.address,
+          city: form.city,
+          country: form.country
+        },
+        payment: {
+          method: 'mpesa',
+          mpesaPhone: form.mpesaPhone
+        },
+        totals: {
+          subtotal,
+          total
         }
+      };
 
-        // Initiate M-Pesa STK push
-        const mpesaResponse = await fetch('/api/mpesa/stkpush', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            phone: phoneNumber,
-            amount: total
-          })
-        });
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(orderData)
+      });
 
-        if (!mpesaResponse.ok) {
-          const errorData = await mpesaResponse.json();
-          throw new Error(errorData.error || 'Server error');
-        }
-
-        const mpesaData = await mpesaResponse.json();
-
-        if (mpesaData.ResponseCode === '0') {
-          toast.success("Payment prompt sent to your phone. Please complete the payment.");
-          
-          // Create order in database
-          const orderResponse = await fetch('/api/orders', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              customerName: form.name,
-              customerEmail: form.email,
-              customerPhone: form.phone,
-              totalAmount: total,
-              items: cart.map(item => ({
-                productId: item.id,
-                quantity: item.quantity,
-                price: item.price
-              }))
-            })
-          });
-
-          if (!orderResponse.ok) {
-            throw new Error('Failed to create order');
-          }
-
-          const orderData = await orderResponse.json();
-          
-          // Update order with M-Pesa checkout ID
-          await fetch(`/api/orders/${orderData.orderId}/status`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({
-              status: 'pending',
-              mpesaCheckoutId: mpesaData.CheckoutRequestID
-            })
-          });
-
-          // Note: Order status will be updated to 'processing' by M-Pesa callback when payment succeeds
-          localStorage.removeItem("cart");
-          navigate("/thank-you", { state: { orderId: orderData.orderId, paymentPending: true } });
-        } else {
-          throw new Error(mpesaData.errorMessage || 'Failed to initiate payment');
-        }
-      } else {
-        // Cash on delivery - create order in database
-        const orderResponse = await fetch('/api/orders', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            customerName: form.name,
-            customerEmail: form.email,
-            customerPhone: form.phone,
-            totalAmount: total,
-            items: cart.map(item => ({
-              productId: item.id,
-              quantity: item.quantity,
-              price: item.price
-            }))
-          })
-        });
-
-        if (!orderResponse.ok) {
-          throw new Error('Failed to create order');
-        }
-
-        const orderData = await orderResponse.json();
-        
-        // Update status to processing for COD
-        const token = localStorage.getItem('token');
-        if (token) {
-          await fetch(`/api/orders/${orderData.orderId}/status`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              status: 'processing'
-            })
-          });
-        }
-
+      if (response.ok) {
+        const result = await response.json();
+        toast.success("Order submitted! Please complete payment via WhatsApp.");
         localStorage.removeItem("cart");
-        toast.success("Order placed successfully!");
-        navigate("/thank-you", { state: { orderId: orderData.orderId } });
+        window.dispatchEvent(new Event('cartUpdated'));
+        navigate("/thank-you", { state: { orderId: result.orderId, whatsapp: true } });
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to place order');
       }
     } catch (error) {
       toast.error(error.message || "Failed to place order. Please try again.");
-      console.error('Order submission error:', error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 sm:p-10">
-      <h1 className="text-2xl font-bold mb-6 text-primary">Checkout</h1>
+    <main className="container mx-auto flex-grow px-6 py-10 lg:py-16">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16">
+        {/* Left Column: Checkout Form */}
+        <div className="lg:col-span-7">
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+            <p className="text-gray-900 text-4xl font-black leading-tight tracking-[-0.033em]">Secure Checkout</p>
+            <span className="inline-flex items-center gap-2 text-sm text-gray-500">
+              <span className="text-base">🔒</span>
+              SSL Encrypted
+            </span>
+          </div>
+          
+          <div className="flex flex-wrap gap-2 mb-8">
+            <Link to="/cart" className="text-primary text-base font-medium leading-normal">Cart</Link>
+            <span className="text-gray-500 text-base font-medium leading-normal">/</span>
+            <span className="text-gray-900 text-base font-medium leading-normal">Checkout</span>
+            <span className="text-gray-500 text-base font-medium leading-normal">/</span>
+            <span className="text-gray-500 text-base font-medium leading-normal">WhatsApp</span>
+          </div>
+          
+          <div className="flex flex-col gap-6">
+            {/* Contact & Delivery Accordion */}
+            <details className="flex flex-col rounded-xl border border-gray-300 bg-white px-5 py-2 group shadow-sm" open>
+              <summary className="flex cursor-pointer items-center justify-between gap-6 py-3">
+                <p className="text-gray-900 text-lg font-bold leading-normal">1. Contact & Delivery Details</p>
+                <span className="text-gray-900 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <div className="pb-4 pt-2">
+                <p className="text-gray-500 text-sm font-normal leading-normal mb-6">Please enter your contact and delivery details below.</p>
+                <form className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-5">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5" htmlFor="email">Email Address</label>
+                    <input 
+                      className={`w-full rounded-lg border-gray-300 focus:ring-primary focus:border-primary transition ${errors.email ? 'border-red-500' : ''}`}
+                      id="email" 
+                      name="email"
+                      value={form.email}
+                      onChange={handleChange}
+                      placeholder="you@example.com" 
+                      type="email"
+                    />
+                    {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5" htmlFor="first-name">First Name</label>
+                    <input 
+                      className={`w-full rounded-lg border-gray-300 focus:ring-primary focus:border-primary transition ${errors.firstName ? 'border-red-500' : ''}`}
+                      id="first-name" 
+                      name="firstName"
+                      value={form.firstName}
+                      onChange={handleChange}
+                      placeholder="Jane" 
+                      type="text"
+                    />
+                    {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5" htmlFor="last-name">Last Name</label>
+                    <input 
+                      className={`w-full rounded-lg border-gray-300 focus:ring-primary focus:border-primary transition ${errors.lastName ? 'border-red-500' : ''}`}
+                      id="last-name" 
+                      name="lastName"
+                      value={form.lastName}
+                      onChange={handleChange}
+                      placeholder="Doe" 
+                      type="text"
+                    />
+                    {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>}
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5" htmlFor="address">Delivery Address</label>
+                    <input 
+                      className={`w-full rounded-lg border-gray-300 focus:ring-primary focus:border-primary transition ${errors.address ? 'border-red-500' : ''}`}
+                      id="address" 
+                      name="address"
+                      value={form.address}
+                      onChange={handleChange}
+                      placeholder="123 Blossom Lane, Westlands" 
+                      type="text"
+                    />
+                    {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5" htmlFor="city">City</label>
+                    <input 
+                      className={`w-full rounded-lg border-gray-300 focus:ring-primary focus:border-primary transition ${errors.city ? 'border-red-500' : ''}`}
+                      id="city" 
+                      name="city"
+                      value={form.city}
+                      onChange={handleChange}
+                      placeholder="Nairobi" 
+                      type="text"
+                    />
+                    {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5" htmlFor="country">Country</label>
+                    <select 
+                      className="w-full rounded-lg border-gray-300 focus:ring-primary focus:border-primary transition" 
+                      id="country"
+                      name="country"
+                      value={form.country}
+                      onChange={handleChange}
+                    >
+                      <option>Kenya</option>
+                      <option>Uganda</option>
+                      <option>Tanzania</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5" htmlFor="phone">Phone Number</label>
+                    <input 
+                      className={`w-full rounded-lg border-gray-300 focus:ring-primary focus:border-primary transition ${errors.phone ? 'border-red-500' : ''}`}
+                      id="phone" 
+                      name="phone"
+                      value={form.phone}
+                      onChange={handleChange}
+                      placeholder="254700000000" 
+                      type="tel"
+                    />
+                    {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+                  </div>
+                </form>
+              </div>
+            </details>
+            
 
-      <div className="grid md:grid-cols-2 gap-10">
-        {/* Customer Info */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block mb-1 text-sm font-medium">Full Name *</label>
-            <input
-              type="text"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              className={`w-full border rounded px-4 py-2 ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
-              placeholder="Enter your full name"
-            />
-            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
-          </div>
-          
-          <div>
-            <label className="block mb-1 text-sm font-medium">Email Address *</label>
-            <input
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              className={`w-full border rounded px-4 py-2 ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
-              placeholder="your@email.com"
-            />
-            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
-          </div>
-          
-          <div>
-            <label className="block mb-1 text-sm font-medium">Phone Number *</label>
-            <input
-              type="tel"
-              name="phone"
-              value={form.phone}
-              onChange={handleChange}
-              className={`w-full border rounded px-4 py-2 ${errors.phone ? 'border-red-500' : 'border-gray-300'}`}
-              placeholder="0712345678 or 254712345678"
-            />
-            {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
-          </div>
-          
-          <div>
-            <label className="block mb-1 text-sm font-medium">City *</label>
-            <input
-              type="text"
-              name="city"
-              value={form.city}
-              onChange={handleChange}
-              className={`w-full border rounded px-4 py-2 ${errors.city ? 'border-red-500' : 'border-gray-300'}`}
-              placeholder="Nairobi"
-            />
-            {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
-          </div>
-          
-          <div>
-            <label className="block mb-1 text-sm font-medium">Delivery Address *</label>
-            <textarea
-              name="address"
-              value={form.address}
-              onChange={handleChange}
-              className={`w-full border rounded px-4 py-2 ${errors.address ? 'border-red-500' : 'border-gray-300'}`}
-              rows="3"
-              placeholder="Enter your full delivery address"
-            />
-            {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
-          </div>
-          
-          <div>
-            <label className="block mb-1 text-sm font-medium">Payment Method</label>
-            <select
-              name="paymentMethod"
-              value={form.paymentMethod}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded px-4 py-2"
-            >
-              <option value="mpesa">M-Pesa</option>
-              <option value="cod">Cash on Delivery</option>
-            </select>
-          </div>
-          
-          {form.paymentMethod === 'mpesa' && (
-            <div className="bg-green-50 border border-green-200 rounded p-4">
-              <h3 className="font-semibold text-green-800 mb-2">M-Pesa Payment</h3>
-              <div className="text-sm text-green-700 space-y-1">
-                <p><strong>Amount:</strong> Ksh {total}</p>
-                <p className="mt-2 text-xs">Click "Place Order" to receive payment prompt on your phone</p>
+            
+            {/* M-Pesa Payment Accordion */}
+            <details className="flex flex-col rounded-xl border border-gray-300 bg-white px-5 py-2 group shadow-sm" open>
+              <summary className="flex cursor-pointer items-center justify-between gap-6 py-3">
+                <p className="text-gray-900 text-lg font-bold leading-normal">2. M-Pesa Payment</p>
+                <span className="text-gray-900 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <div className="pb-4 pt-2">
+                <p className="text-gray-500 text-sm font-normal leading-normal mb-6">Pay securely with M-Pesa. You'll receive a payment request on your phone.</p>
+                <div className="rounded-lg border-2 border-green-200 bg-green-50 p-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-2xl">📱</span>
+                    <span className="font-semibold text-gray-900">M-Pesa Payment</span>
+                    <span className="ml-auto bg-green-600 text-white px-2 py-1 rounded text-xs font-bold">SELECTED</span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5" htmlFor="mpesa-phone">M-Pesa Phone Number</label>
+                    <input 
+                      className={`w-full rounded-lg border-gray-300 focus:ring-primary focus:border-primary transition ${errors.mpesaPhone ? 'border-red-500' : ''}`}
+                      id="mpesa-phone" 
+                      name="mpesaPhone"
+                      value={form.mpesaPhone}
+                      onChange={handleChange}
+                      placeholder="254700000000" 
+                      type="tel"
+                    />
+                    {errors.mpesaPhone && <p className="text-red-500 text-sm mt-1">{errors.mpesaPhone}</p>}
+                    <p className="text-xs text-gray-500 mt-1">Enter the phone number registered with M-Pesa</p>
+                  </div>
+                </div>
+              </div>
+            </details>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <span className="text-blue-600 text-xl">💬</span>
+                <div>
+                  <h4 className="font-semibold text-blue-900 mb-1">WhatsApp Order Process</h4>
+                  <p className="text-sm text-blue-700">After clicking "Place Order", you'll be redirected to WhatsApp where our team will:</p>
+                  <ul className="text-sm text-blue-700 mt-2 space-y-1">
+                    <li>• Confirm your order details</li>
+                    <li>• Send M-Pesa payment request</li>
+                    <li>• Arrange delivery within Nairobi</li>
+                    <li>• Provide order tracking updates</li>
+                  </ul>
+                </div>
               </div>
             </div>
-          )}
-          
-          <button
-            type="submit"
-            disabled={loading || cart.length === 0}
-            className="w-full bg-primary text-white px-6 py-3 rounded-full hover:bg-secondary transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {loading ? (
-              <>
-                <LoadingSpinner size="small" />
-                <span className="ml-2">Processing Order...</span>
-              </>
-            ) : (
-              `Place Order - Ksh ${total}`
-            )}
-          </button>
-        </form>
-
-        {/* Order Summary */}
-        <div>
-          <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
-          {cart.length === 0 ? (
-            <p className="text-gray-500">Your cart is empty.</p>
-          ) : (
-            <ul className="space-y-3">
-              {cart.map((item) => (
-                <li key={item.id} className="flex justify-between text-sm">
-                  <span>
-                    {item.title} x {item.quantity}
-                  </span>
-                  <span>Ksh {item.price * item.quantity}</span>
-                </li>
-              ))}
-              <li className="flex justify-between font-semibold pt-4 border-t">
-                <span>Total</span>
-                <span>Ksh {total}</span>
-              </li>
-            </ul>
-          )}
+            
+            <div className="flex flex-col sm:flex-row-reverse sm:items-center justify-between gap-4 mt-4">
+              <button 
+                onClick={handleSubmit}
+                disabled={loading}
+                className="w-full sm:w-auto flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-green-600 text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] px-8 hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <LoadingSpinner size="small" />
+                    <span className="ml-2">Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>💬</span>
+                    Place Order via WhatsApp
+                  </>
+                )}
+              </button>
+              <Link 
+                to="/cart"
+                className="text-gray-500 hover:text-gray-900 font-medium text-sm flex items-center gap-2 transition-colors"
+              >
+                <span>←</span>
+                Back to Cart
+              </Link>
+            </div>
+          </div>
+        </div>
+        
+        {/* Right Column: Order Summary */}
+        <div className="lg:col-span-5">
+          <div className="sticky top-10">
+            <div className="bg-white border border-gray-300 rounded-xl shadow-sm p-6 lg:p-8">
+              <h3 className="text-gray-900 text-2xl font-bold leading-tight tracking-[-0.015em] mb-6">Your Order</h3>
+              <div className="space-y-5">
+                {cart.map((item) => (
+                  <div key={item.id} className="flex items-center gap-4">
+                    <img className="w-16 h-16 rounded-lg object-cover" src={item.image_url} alt={item.name} />
+                    <div className="flex-grow">
+                      <p className="font-semibold text-gray-900">{item.name}</p>
+                      <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                    </div>
+                    <p className="font-semibold text-gray-900">${parseFloat(item.price).toFixed(2)}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t border-gray-300 my-6"></div>
+              <div className="flex gap-3">
+                <input 
+                  className="flex-grow rounded-lg border-gray-300 focus:ring-primary focus:border-primary transition" 
+                  placeholder="Discount code" 
+                  type="text"
+                />
+                <button className="flex-shrink-0 cursor-pointer items-center justify-center rounded-lg h-11 bg-primary/20 text-gray-900 text-sm font-bold px-4 hover:bg-primary/30 transition-colors">
+                  Apply
+                </button>
+              </div>
+              <div className="border-t border-gray-300 my-6"></div>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Subtotal</span>
+                  <span className="font-medium text-gray-900">${subtotal.toFixed(2)}</span>
+                </div>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-4">
+                  <div className="flex items-center gap-2 text-green-700">
+                    <span>📱</span>
+                    <span className="text-sm font-medium">Free delivery within Nairobi</span>
+                  </div>
+                  <p className="text-xs text-green-600 mt-1">Orders processed via WhatsApp for personalized service</p>
+                </div>
+              </div>
+              <div className="border-t border-gray-300 my-6"></div>
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-bold text-gray-900">Total</span>
+                <span className="text-2xl font-black text-gray-900 tracking-tight">${total.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 

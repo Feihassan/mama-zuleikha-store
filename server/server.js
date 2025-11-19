@@ -71,6 +71,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/mpesa', mpesaRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api', productRoutes); // Mount at /api to handle /api/categories
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/contact', contactRoutes);
 
